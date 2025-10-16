@@ -1,30 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createUser, createSession } from '@/app/lib/auth-db';
 
-// Simple signup - in production, use proper authentication with database
 export async function POST(req: NextRequest) {
   try {
     const { email, password, name } = await req.json();
 
-    // Mock signup - replace with real user creation
-    if (email && password) {
-      const user = {
-        id: Date.now().toString(),
-        email,
-        name: name || email.split('@')[0],
-      };
-
-      return NextResponse.json({
-        success: true,
-        user,
-        token: 'mock-token-' + Date.now(),
-      });
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: 'Email and password are required' },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json(
-      { error: 'Invalid input' },
-      { status: 400 }
-    );
-  } catch {
+    // Create user in database
+    const user = await createUser(email, password, name);
+    
+    // Create session token
+    const token = await createSession(user.id);
+
+    return NextResponse.json({
+      success: true,
+      user,
+      token,
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes('Unique constraint')) {
+      return NextResponse.json(
+        { error: 'Email already exists' },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Signup failed' },
       { status: 500 }

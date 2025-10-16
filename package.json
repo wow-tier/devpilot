@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
+    "@prisma/client": "^6.17.1",
+    "@types/bcrypt": "^6.0.0",
     "axios": "^1.7.9",
     "bcrypt": "^6.0.0",
     "diff": "^5.2.0",
@@ -22,6 +24,7 @@
     "next": "15.5.5",
     "next-auth": "^4.24.11",
     "openai": "^4.77.0",
+    "prisma": "^6.17.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "simple-git": "^3.25.0"

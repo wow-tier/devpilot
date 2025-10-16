@@ -1,29 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyUser, createSession } from '@/app/lib/auth-db';
 
-// Simple auth - in production, use proper authentication
 export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json();
 
-    // Mock authentication - replace with real auth
-    if (email && password) {
-      const user = {
-        id: '1',
-        email,
-        name: email.split('@')[0],
-      };
-
-      return NextResponse.json({
-        success: true,
-        user,
-        token: 'mock-token-' + Date.now(),
-      });
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: 'Email and password are required' },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json(
-      { error: 'Invalid credentials' },
-      { status: 401 }
-    );
+    // Verify user credentials
+    const user = await verifyUser(email, password);
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      );
+    }
+
+    // Create session token
+    const token = await createSession(user.id);
+
+    return NextResponse.json({
+      success: true,
+      user,
+      token,
+    });
   } catch {
     return NextResponse.json(
       { error: 'Authentication failed' },

@@ -2,18 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import Sidebar from './components/Sidebar';
-import AIChat from './components/AIChat';
-import WelcomeScreen from './components/WelcomeScreen';
-import StatusBar from './components/StatusBar';
-import KeyboardShortcuts from './components/KeyboardShortcuts';
-import ErrorBoundary from './components/ErrorBoundary';
-import TabBar, { Tab } from './components/TabBar';
-import CommandPalette from './components/CommandPalette';
-import Terminal from './components/Terminal';
-import SettingsPanel, { Settings } from './components/SettingsPanel';
-import Breadcrumbs from './components/Breadcrumbs';
-import DiffPreview from './components/DiffPreview';
+import Sidebar from '../components/Sidebar';
+import AIChat from '../components/AIChat';
+import WelcomeScreen from '../components/WelcomeScreen';
+import StatusBar from '../components/StatusBar';
+import KeyboardShortcuts from '../components/KeyboardShortcuts';
+import ErrorBoundary from '../components/ErrorBoundary';
+import TabBar, { Tab } from '../components/TabBar';
+import CommandPalette from '../components/CommandPalette';
+import Terminal from '../components/Terminal';
+import SettingsPanel, { Settings } from '../components/SettingsPanel';
+import Breadcrumbs from '../components/Breadcrumbs';
+import DiffPreview from '../components/DiffPreview';
 
 const CodeEditor = dynamic(() => import('./components/Editor'), {
   ssr: false,

@@ -68,22 +68,57 @@ export default function IDEWorkspace() {
   const activeContent = activeTab ? fileContents[activeTab.path] || '' : '';
 
   useEffect(() => {
-    // Load repository info from URL params and localStorage
+    // Load repository info from URL params
     const params = new URLSearchParams(window.location.search);
     const repoId = params.get('repo');
     
+    console.log('📍 Workspace mounted');
+    console.log('🔍 Repository ID from URL:', repoId);
+    
     if (repoId) {
-      const repoData = localStorage.getItem('currentRepo');
-      if (repoData) {
-        const repo: Repository = JSON.parse(repoData);
-        setCurrentRepo(repo);
-        setGitBranch(repo.defaultBranch || 'main');
-        
-        // Clone/pull repository
-        cloneRepository(repo.id);
-      }
+      // Fetch repository from database API
+      const fetchRepository = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          
+          if (!token) {
+            console.error('❌ No token found');
+            setShowWelcome(true);
+            return;
+          }
+
+          console.log('📡 Fetching repository details for ID:', repoId);
+
+          const response = await fetch(`/api/repositories/${repoId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('✅ Repository fetched from database:', data.repository);
+            
+            const repo = data.repository;
+            setCurrentRepo(repo);
+            setGitBranch(repo.defaultBranch || 'main');
+            
+            // Clone/pull repository
+            console.log('🔄 Starting clone for:', repo.url);
+            await cloneRepository(repo.id);
+          } else {
+            console.error('❌ Failed to fetch repository:', await response.text());
+            setShowWelcome(true);
+          }
+        } catch (error) {
+          console.error('❌ Error fetching repository:', error);
+          setShowWelcome(true);
+        }
+      };
+
+      fetchRepository();
     } else {
-      // No repository selected, show welcome
+      console.warn('⚠️ No repository ID in URL - showing welcome screen');
       setShowWelcome(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

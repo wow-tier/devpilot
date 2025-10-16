@@ -1,6 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
+// Prisma Schema for AI Code Agent - Complete SaaS Platform
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,16 +8,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// User Management
+// ============================================
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  password      String
+  avatar        String?
+  githubId      String?   @unique
+  githubUsername String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   
-  repositories Repository[]
-  sessions     Session[]
+  // Relations
+  sessions        Session[]
+  repositories    Repository[]
+  subscriptions   Subscription[]
+  payments        Payment[]
+  apiKeys         ApiKey[]
+  codeModifications CodeModification[]
+  usageStats      UsageStats[]
+  
+  @@index([email])
+  @@index([githubId])
 }
 
 model Session {
@@ -27,45 +42,289 @@ model Session {
   userId    String
   token     String   @unique
   expiresAt DateTime
+  userAgent String?
+  ipAddress String?
   createdAt DateTime @default(now())
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Repository {
-  id          String   @id @default(cuid())
-  userId      String
-  name        String
-  url         String
-  branch      String   @default("main")
-  description String?
-  lastAccessed DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
   
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
+  @@index([token])
 }
 
-model AIModel {
+// ============================================
+// Subscription & Billing
+// ============================================
+
+model Plan {
+  id              String   @id @default(cuid())
+  name            String   @unique // free, pro, enterprise
+  displayName     String
+  description     String?
+  price           Decimal  @db.Decimal(10, 2)
+  interval        String   // month, year
+  features        Json     // Store features as JSON
+  maxRepositories Int      @default(5)
+  maxAIRequests   Int      @default(100)
+  maxStorage      Int      @default(1000) // MB
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  subscriptions Subscription[]
+  
+  @@index([name])
+}
+
+model Subscription {
+  id                String    @id @default(cuid())
+  userId            String
+  planId            String
+  status            String    // active, canceled, past_due, trialing
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd Boolean   @default(false)
+  stripeCustomerId  String?
+  stripeSubscriptionId String? @unique
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan @relation(fields: [planId], references: [id])
+  
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  userId          String
+  amount          Decimal  @db.Decimal(10, 2)
+  currency        String   @default("usd")
+  status          String   // succeeded, pending, failed
+  stripePaymentId String?  @unique
+  description     String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================
+// Repository Management
+// ============================================
+
+model Repository {
+  id            String    @id @default(cuid())
+  userId        String
+  name          String
+  fullName      String?   // owner/repo format
+  url           String
+  gitUrl        String?
+  sshUrl        String?
+  defaultBranch String    @default("main")
+  description   String?
+  language      String?
+  isPrivate     Boolean   @default(false)
+  stars         Int       @default(0)
+  forks         Int       @default(0)
+  githubId      String?   @unique
+  lastSyncedAt  DateTime?
+  lastAccessedAt DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branches Branch[]
+  commits  Commit[]
+  
+  @@index([userId])
+  @@index([githubId])
+  @@index([isActive])
+}
+
+model Branch {
+  id           String   @id @default(cuid())
+  repositoryId String
+  name         String
+  sha          String
+  isDefault    Boolean  @default(false)
+  protected    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  
+  @@unique([repositoryId, name])
+  @@index([repositoryId])
+}
+
+model Commit {
+  id           String   @id @default(cuid())
+  repositoryId String
+  sha          String   @unique
+  message      String
+  author       String
+  authorEmail  String?
+  branch       String
+  timestamp    DateTime
+  createdAt    DateTime @default(now())
+  
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  
+  @@index([repositoryId])
+  @@index([sha])
+}
+
+// ============================================
+// AI & Code Modifications
+// ============================================
+
+model ApiKey {
   id        String   @id @default(cuid())
+  userId    String
+  provider  String   // openai, anthropic, google
   name      String
-  provider  String   // openai, anthropic, etc
-  apiKey    String
-  isDefault Boolean  @default(false)
+  keyHash   String   // Store hashed version
+  isActive  Boolean  @default(true)
+  lastUsed  DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([provider])
 }
 
 model CodeModification {
-  id          String   @id @default(cuid())
-  filePath    String
-  original    String   @db.Text
-  modified    String   @db.Text
-  prompt      String   @db.Text
-  userId      String?
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String?
+  repositoryId String?
+  filePath     String
+  fileName     String
+  language     String?
+  originalCode String   @db.Text
+  modifiedCode String   @db.Text
+  prompt       String   @db.Text
+  aiModel      String
+  tokensUsed   Int      @default(0)
+  status       String   @default("completed") // completed, failed, pending
+  createdAt    DateTime @default(now())
+  
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   
   @@index([userId])
+  @@index([createdAt])
+  @@index([status])
+}
+
+// ============================================
+// Usage & Analytics
+// ============================================
+
+model UsageStats {
+  id            String   @id @default(cuid())
+  userId        String
+  date          DateTime @db.Date
+  aiRequests    Int      @default(0)
+  tokensUsed    Int      @default(0)
+  storageUsed   Int      @default(0) // in MB
+  repositories  Int      @default(0)
+  commits       Int      @default(0)
+  createdAt     DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // login, logout, create_repo, ai_request, etc
+  resource  String?  // repository, file, etc
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================
+// Collaboration & Teams (Future)
+// ============================================
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  ownerId   String
+  plan      String   @default("free")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  members TeamMember[]
+  
+  @@index([slug])
+  @@index([ownerId])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      String   @default("member") // owner, admin, member
+  createdAt DateTime @default(now())
+  
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+// ============================================
+// Notifications & Webhooks
+// ============================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // info, warning, error, success
+  title     String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  link      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  userId    String
+  url       String
+  events    String[] // array of event types
+  secret    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([isActive])
 }

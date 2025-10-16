@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email: string; name?: string } | null>(null);
   const [activeTab, setActiveTab] = useState('account');
 
   useEffect(() => {

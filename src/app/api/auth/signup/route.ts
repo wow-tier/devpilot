@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       { error: 'Invalid input' },
       { status: 400 }
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Signup failed' },
       { status: 500 }

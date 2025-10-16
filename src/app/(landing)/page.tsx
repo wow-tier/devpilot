@@ -96,7 +96,7 @@ export default function LandingPage() {
                 {'}'} <span className="text-purple-400">catch</span> (error) {'{'}
               </div>
               <div className="ml-12">
-                logger.error(<span className="text-green-400">'Failed to fetch user'</span>, error);
+                logger.error(<span className="text-green-400">&apos;Failed to fetch user&apos;</span>, error);
               </div>
               <div className="ml-12">
                 <span className="text-purple-400">throw new</span>{' '}

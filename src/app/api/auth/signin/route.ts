@@ -12,27 +12,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify user credentials
+    // Verify user credentials against database
     const user = await verifyUser(email, password);
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Invalid credentials' },
+        { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    // Create session token
+    // Create session in database
     const token = await createSession(user.id);
 
+    // Return user data with session token
     return NextResponse.json({
       success: true,
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
       token,
     });
-  } catch {
+  } catch (error) {
+    console.error('Sign in error:', error);
     return NextResponse.json(
-      { error: 'Authentication failed' },
+      { error: 'An error occurred during sign in' },
       { status: 500 }
     );
   }

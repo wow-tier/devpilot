@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Code2, Plus, Settings, LogOut, FolderGit2, 
-  GitBranch, ExternalLink, Trash2, Loader2, Github, Star
+  GitBranch, ExternalLink, Trash2, Loader2, Github
 } from 'lucide-react';
 
 interface Repository {
@@ -22,7 +22,6 @@ interface User {
   id: string;
   email: string;
   name?: string;
-  token?: string;
 }
 
 export default function DashboardPage() {
@@ -36,51 +35,68 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (!userData) {
+    verifyAndLoadUser();
+  }, [router]);
+
+  const verifyAndLoadUser = async () => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
       router.push('/login');
       return;
     }
-    
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    
-    loadRepositories(parsedUser);
-  }, [router]);
 
-  const loadRepositories = async (userData: User) => {
+    try {
+      // Verify token with database
+      const response = await fetch('/api/auth/verify', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        // Invalid session, clear and redirect
+        localStorage.clear();
+        router.push('/login');
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (!data.valid) {
+        localStorage.clear();
+        router.push('/login');
+        return;
+      }
+
+      setUser(data.user);
+      loadRepositories(token);
+    } catch (error) {
+      console.error('Verification error:', error);
+      localStorage.clear();
+      router.push('/login');
+    }
+  };
+
+  const loadRepositories = async (token: string) => {
     setIsFetching(true);
     try {
-      const token = userData.token || localStorage.getItem('token');
-      
-      if (token) {
-        const response = await fetch('/api/repositories', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+      const response = await fetch('/api/repositories', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          setRepositories(data.repositories || []);
-        } else {
-          const savedRepos = localStorage.getItem('repositories');
-          if (savedRepos) {
-            setRepositories(JSON.parse(savedRepos));
-          }
-        }
+      if (response.ok) {
+        const data = await response.json();
+        setRepositories(data.repositories || []);
       } else {
-        const savedRepos = localStorage.getItem('repositories');
-        if (savedRepos) {
-          setRepositories(JSON.parse(savedRepos));
-        }
+        console.error('Failed to load repositories');
+        setRepositories([]);
       }
     } catch (error) {
       console.error('Error loading repositories:', error);
-      const savedRepos = localStorage.getItem('repositories');
-      if (savedRepos) {
-        setRepositories(JSON.parse(savedRepos));
-      }
+      setRepositories([]);
     } finally {
       setIsFetching(false);
     }
@@ -92,7 +108,6 @@ export default function DashboardPage() {
       return;
     }
 
-    // Validate GitHub URL format
     if (!newRepo.url.includes('github.com')) {
       setError('Please enter a valid GitHub repository URL');
       return;
@@ -102,52 +117,36 @@ export default function DashboardPage() {
     setError('');
 
     try {
-      const token = user?.token || localStorage.getItem('token');
-      
-      const repo: Repository = {
-        id: Date.now().toString(),
-        name: newRepo.name,
-        url: newRepo.url,
-        defaultBranch: newRepo.branch || 'main',
-        description: newRepo.description,
-        lastAccessedAt: new Date(),
-        isActive: true,
-      };
+      const token = localStorage.getItem('token');
 
-      if (token) {
-        const response = await fetch('/api/repositories', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            name: newRepo.name,
-            url: newRepo.url,
-            branch: newRepo.branch || 'main',
-            description: newRepo.description,
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const dbRepo = data.repository;
-          const updatedRepos = [...repositories, dbRepo];
-          setRepositories(updatedRepos);
-          localStorage.setItem('repositories', JSON.stringify(updatedRepos));
-        } else {
-          const updatedRepos = [...repositories, repo];
-          setRepositories(updatedRepos);
-          localStorage.setItem('repositories', JSON.stringify(updatedRepos));
-        }
-      } else {
-        const updatedRepos = [...repositories, repo];
-        setRepositories(updatedRepos);
-        localStorage.setItem('repositories', JSON.stringify(updatedRepos));
+      if (!token) {
+        router.push('/login');
+        return;
       }
 
-      setNewRepo({ name: '', url: '', branch: 'main', description: '' });
-      setShowAddRepo(false);
+      const response = await fetch('/api/repositories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: newRepo.name,
+          url: newRepo.url,
+          branch: newRepo.branch || 'main',
+          description: newRepo.description,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRepositories([...repositories, data.repository]);
+        setNewRepo({ name: '', url: '', branch: 'main', description: '' });
+        setShowAddRepo(false);
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Failed to add repository');
+      }
     } catch (error) {
       console.error('Error adding repository:', error);
       setError('Failed to add repository. Please try again.');
@@ -162,20 +161,23 @@ export default function DashboardPage() {
     }
 
     try {
-      const token = user?.token || localStorage.getItem('token');
+      const token = localStorage.getItem('token');
       
-      if (token) {
-        await fetch(`/api/repositories/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+      if (!token) {
+        router.push('/login');
+        return;
       }
 
-      const updatedRepos = repositories.filter(r => r.id !== id);
-      setRepositories(updatedRepos);
-      localStorage.setItem('repositories', JSON.stringify(updatedRepos));
+      const response = await fetch(`/api/repositories/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setRepositories(repositories.filter(r => r.id !== id));
+      }
     } catch (error) {
       console.error('Error deleting repository:', error);
     }
@@ -186,13 +188,33 @@ export default function DashboardPage() {
     router.push(`/workspace?repo=${repo.id}`);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+  const handleLogout = async () => {
+    const token = localStorage.getItem('token');
+    
+    if (token) {
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    }
+
+    localStorage.clear();
     router.push('/');
   };
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#58a6ff] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0d1117]">
@@ -240,7 +262,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-[#c9d1d9] mb-2">Your Repositories</h1>
-            <p className="text-[#8b949e]">Select a repository to start coding with AI</p>
+            <p className="text-[#8b949e]">Manage your GitHub repositories</p>
           </div>
           <button
             onClick={() => setShowAddRepo(true)}

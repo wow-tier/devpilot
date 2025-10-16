@@ -3,175 +3,189 @@
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Code2, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
 
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isSignup = searchParams.get('signup') === 'true';
+  const isSignup = searchParams?.get('signup') === 'true';
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isSignupMode, setIsSignupMode] = useState(isSignup);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+  });
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setIsLoading(true);
 
     try {
-      const endpoint = isSignup ? '/api/auth/signup' : '/api/auth/signin';
+      const endpoint = isSignupMode ? '/api/auth/signup' : '/api/auth/signin';
+      const body = isSignupMode 
+        ? formData 
+        : { email: formData.email, password: formData.password };
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('user', JSON.stringify(data.user));
+        // Store ONLY the token and user ID in localStorage
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify({
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.name,
+        }));
+        
+        // Clear any old localStorage data
+        localStorage.removeItem('repositories');
+        localStorage.removeItem('currentRepo');
+
+        // Redirect to dashboard
         router.push('/dashboard');
       } else {
         setError(data.error || 'Authentication failed');
       }
-    } catch {
+    } catch (err) {
+      console.error('Auth error:', err);
       setError('An error occurred. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <Link href="/" className="flex items-center justify-center gap-3 mb-8 group">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:shadow-glow transition-all">
-            <Code2 className="w-6 h-6 text-white" />
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-[#58a6ff] to-[#bc8cff] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#58a6ff]/30">
+            <span className="text-3xl">💻</span>
           </div>
-          <h1 className="text-2xl font-bold text-white">AI Code Agent</h1>
-        </Link>
-
-        {/* Card */}
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-2 text-center">
-            {isSignup ? 'Create your account' : 'Welcome back'}
-          </h2>
-          <p className="text-slate-400 text-center mb-8">
-            {isSignup ? 'Start building with AI' : 'Continue your coding journey'}
+          <h1 className="text-3xl font-bold text-[#c9d1d9] mb-2">
+            {isSignupMode ? 'Create Account' : 'Welcome Back'}
+          </h1>
+          <p className="text-[#8b949e]">
+            {isSignupMode ? 'Start coding with AI' : 'Continue your AI coding journey'}
           </p>
+        </div>
 
-          {/* Error Message */}
+        <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-8 shadow-2xl">
           {error && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400 text-sm flex items-center gap-2">
-              <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
+            <div className="mb-6 p-4 bg-[#da3633]/10 border border-[#da3633]/50 rounded-lg text-[#f85149] text-sm">
               {error}
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {isSignup && (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignupMode && (
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Full Name
+                <label className="block text-sm font-medium text-[#c9d1d9] mb-2">
+                  Name
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6e7681]" />
                   <input
                     type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full pl-11 pr-4 py-3 bg-[#0d1117] border border-[#30363d] rounded-lg text-[#c9d1d9] placeholder-[#6e7681] focus:outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff] transition-all"
                     placeholder="John Doe"
-                    required={isSignup}
+                    required={isSignupMode}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Email Address
+              <label className="block text-sm font-medium text-[#c9d1d9] mb-2">
+                Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6e7681]" />
                 <input
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full pl-11 pr-4 py-3 bg-[#0d1117] border border-[#30363d] rounded-lg text-[#c9d1d9] placeholder-[#6e7681] focus:outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff] transition-all"
                   placeholder="you@example.com"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-[#c9d1d9] mb-2">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6e7681]" />
                 <input
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full pl-11 pr-4 py-3 bg-[#0d1117] border border-[#30363d] rounded-lg text-[#c9d1d9] placeholder-[#6e7681] focus:outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff] transition-all"
                   placeholder="••••••••"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
 
-            {!isSignup && (
-              <div className="text-right">
-                <a href="#" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-                  Forgot password?
-                </a>
-              </div>
-            )}
-
             <button
               type="submit"
-              disabled={loading}
-              className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-glow"
+              disabled={isLoading}
+              className="w-full py-3 bg-[#238636] text-white rounded-lg hover:bg-[#2ea043] transition-all font-medium shadow-lg shadow-[#238636]/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  {isSignupMode ? 'Creating Account...' : 'Signing In...'}
+                </>
               ) : (
                 <>
-                  {isSignup ? 'Create Account' : 'Sign In'}
+                  {isSignupMode ? 'Create Account' : 'Sign In'}
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Toggle */}
-          <p className="mt-6 text-center text-slate-400">
-            {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
-            <Link
-              href={isSignup ? '/login' : '/login?signup=true'}
-              className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                setIsSignupMode(!isSignupMode);
+                setError('');
+              }}
+              className="text-[#58a6ff] hover:text-[#79c0ff] transition-colors text-sm"
+              disabled={isLoading}
             >
-              {isSignup ? 'Sign in' : 'Sign up'}
-            </Link>
-          </p>
+              {isSignupMode 
+                ? 'Already have an account? Sign in' 
+                : 'Need an account? Sign up'}
+            </button>
+          </div>
         </div>
 
-        {/* Terms */}
-        <p className="mt-6 text-center text-sm text-slate-500">
-          By continuing, you agree to our{' '}
-          <a href="#" className="text-slate-400 hover:text-slate-300 transition-colors">Terms of Service</a>
-          {' '}and{' '}
-          <a href="#" className="text-slate-400 hover:text-slate-300 transition-colors">Privacy Policy</a>
-        </p>
+        <div className="mt-6 text-center">
+          <Link 
+            href="/" 
+            className="text-[#8b949e] hover:text-[#c9d1d9] transition-colors text-sm"
+          >
+            ← Back to home
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -180,8 +194,8 @@ function LoginFormContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#58a6ff] animate-spin" />
       </div>
     }>
       <LoginFormContent />

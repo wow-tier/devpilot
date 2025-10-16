@@ -1,6 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { 
+  Folder, FolderOpen, FileText, FileCode, FilePlus, 
+  FolderPlus, RefreshCw, Edit2, Trash2, ChevronRight, ChevronDown 
+} from 'lucide-react';
 
 interface FileInfo {
   name: string;
@@ -82,53 +86,51 @@ export default function ImprovedFileExplorer({
 
   const getFileIcon = (file: FileInfo) => {
     if (file.type === 'directory') {
-      return expandedDirs.has(file.path) ? '📂' : '📁';
+      return expandedDirs.has(file.path) 
+        ? <FolderOpen className="w-4 h-4 text-blue-400" />
+        : <Folder className="w-4 h-4 text-slate-400" />;
     }
     
     const ext = file.name.split('.').pop()?.toLowerCase();
-    const iconMap: Record<string, string> = {
-      'ts': '🔷',
-      'tsx': '⚛️',
-      'js': '🟨',
-      'jsx': '⚛️',
-      'json': '📋',
-      'md': '📝',
-      'css': '🎨',
-      'html': '🌐',
-      'py': '🐍',
-      'git': '🔀',
-      'env': '🔐',
-    };
-    
-    return iconMap[ext || ''] || '📄';
+    if (ext === 'ts' || ext === 'tsx' || ext === 'js' || ext === 'jsx') {
+      return <FileCode className="w-4 h-4 text-blue-400" />;
+    }
+    return <FileText className="w-4 h-4 text-slate-400" />;
+  };
+
+  const getChevron = (file: FileInfo) => {
+    if (file.type !== 'directory') return null;
+    return expandedDirs.has(file.path)
+      ? <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+      : <ChevronRight className="w-3.5 h-3.5 text-slate-500" />;
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 text-white">
-      {/* Header with Actions */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-800">
-        <h2 className="text-sm font-semibold">Explorer</h2>
+    <div className="flex flex-col h-full bg-slate-900 text-white">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-800 bg-slate-900">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Explorer</h2>
         <div className="flex gap-1">
           <button
             onClick={() => onFileCreate?.('new-file.ts', 'file')}
-            className="p-1 hover:bg-gray-800 rounded"
+            className="p-1.5 hover:bg-slate-800 rounded transition-colors"
             title="New File"
           >
-            📄
+            <FilePlus className="w-4 h-4 text-slate-400" />
           </button>
           <button
             onClick={() => onFileCreate?.('new-folder', 'directory')}
-            className="p-1 hover:bg-gray-800 rounded"
+            className="p-1.5 hover:bg-slate-800 rounded transition-colors"
             title="New Folder"
           >
-            📁
+            <FolderPlus className="w-4 h-4 text-slate-400" />
           </button>
           <button
             onClick={() => loadFiles('.')}
-            className="p-1 hover:bg-gray-800 rounded"
+            className="p-1.5 hover:bg-slate-800 rounded transition-colors"
             title="Refresh"
           >
-            🔄
+            <RefreshCw className="w-4 h-4 text-slate-400" />
           </button>
         </div>
       </div>
@@ -136,24 +138,25 @@ export default function ImprovedFileExplorer({
       {/* File List */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="p-4 text-center text-gray-500">Loading...</div>
+          <div className="p-4 text-center text-slate-500 text-sm">Loading...</div>
         ) : (
-          <div className="divide-y divide-gray-800">
+          <div>
             {files.map((file) => (
               <div
                 key={file.path}
                 onClick={() => handleFileClick(file)}
                 onContextMenu={(e) => handleContextMenu(e, file)}
                 className={`
-                  flex items-center gap-2 px-3 py-2 cursor-pointer
-                  hover:bg-gray-800 transition-colors
-                  ${selectedFile === file.path ? 'bg-blue-600/20 border-l-2 border-blue-500' : ''}
+                  flex items-center gap-2 px-3 py-1.5 cursor-pointer
+                  hover:bg-slate-800/50 transition-colors text-sm
+                  ${selectedFile === file.path ? 'bg-slate-800 border-l-2 border-blue-500' : ''}
                 `}
               >
-                <span className="text-lg">{getFileIcon(file)}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{file.name}</p>
-                </div>
+                {getChevron(file)}
+                {getFileIcon(file)}
+                <span className={`flex-1 truncate ${selectedFile === file.path ? 'text-white font-medium' : 'text-slate-300'}`}>
+                  {file.name}
+                </span>
               </div>
             ))}
           </div>
@@ -163,7 +166,7 @@ export default function ImprovedFileExplorer({
       {/* Context Menu */}
       {contextMenu && (
         <div
-          className="fixed bg-gray-800 border border-gray-700 rounded shadow-lg py-1 z-50"
+          className="fixed bg-slate-800 border border-slate-700 rounded-lg shadow-2xl py-1 z-50 min-w-[180px]"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
           <button
@@ -171,18 +174,20 @@ export default function ImprovedFileExplorer({
               onFileRename?.(contextMenu.file.path, contextMenu.file.path + '_renamed');
               setContextMenu(null);
             }}
-            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center gap-2"
+            className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 flex items-center gap-2"
           >
-            ✏️ Rename
+            <Edit2 className="w-4 h-4" />
+            Rename
           </button>
           <button
             onClick={() => {
               onFileDelete?.(contextMenu.file.path);
               setContextMenu(null);
             }}
-            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center gap-2 text-red-400"
+            className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 flex items-center gap-2"
           >
-            🗑️ Delete
+            <Trash2 className="w-4 h-4" />
+            Delete
           </button>
         </div>
       )}

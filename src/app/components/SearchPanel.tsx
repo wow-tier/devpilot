@@ -44,10 +44,10 @@ export default function SearchPanel({ onResultClick }: SearchPanelProps) {
     }
   };
 
-  const handleReplace = async (file: string, line: number) => {
-    // Implement replace logic
-    console.log('Replace in', file, 'at line', line);
-  };
+  // const handleReplace = async (file: string, line: number) => {
+  //   // Implement replace logic
+  //   console.log('Replace in', file, 'at line', line);
+  // };
 
   return (
     <div className="flex flex-col h-full bg-gray-900 text-white">

@@ -58,7 +58,7 @@ export default function Terminal() {
       } else if (trimmedCmd === 'ls') {
         const response = await fetch('/api/files?directory=.');
         const data = await response.json();
-        const fileList = data.files.map((f: any) => f.name).join('  ');
+        const fileList = data.files.map((f: { name: string }) => f.name).join('  ');
         setLines(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           type: 'output',

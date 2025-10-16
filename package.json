@@ -8,6 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "setup": "bash scripts/setup.sh",
+    "db:setup": "bash database/setup.sh",
+    "db:generate": "npx prisma generate",
+    "db:migrate": "npx prisma migrate dev",
+    "db:push": "npx prisma db push",
+    "db:studio": "npx prisma studio",
+    "db:seed": "psql -U postgres -d devpilot < database/seed.sql",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .next node_modules"
   },

@@ -6,11 +6,15 @@ import type { editor } from 'monaco-editor';
 
 interface CodeEditorProps {
   value: string;
-  onChange?: (value: string) => void;
+  onChange?: (value: string | undefined) => void;
   language?: string;
   readOnly?: boolean;
   height?: string;
   theme?: string;
+  fontSize?: number;
+  minimap?: boolean;
+  lineNumbers?: boolean;
+  wordWrap?: boolean;
 }
 
 export default function CodeEditor({

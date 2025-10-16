@@ -56,6 +56,19 @@ export default function IDEWorkspace() {
   const activeContent = activeTab ? fileContents[activeTab.path] || '' : '';
 
   useEffect(() => {
+    // Load repository info from URL params
+    const params = new URLSearchParams(window.location.search);
+    const repoId = params.get('repo');
+    
+    if (repoId) {
+      const repoData = localStorage.getItem('currentRepo');
+      if (repoData) {
+        const repo = JSON.parse(repoData);
+        console.log('Loaded repository:', repo);
+        // You can set this to state if needed
+      }
+    }
+    
     loadGitStatus();
   }, []);
 

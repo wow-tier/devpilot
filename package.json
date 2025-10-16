@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup": "bash scripts/setup.sh",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf .next node_modules"
   },
   "dependencies": {
     "react": "19.1.0",

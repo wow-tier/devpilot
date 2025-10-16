@@ -266,10 +266,10 @@ export default function IDEWorkspace() {
   };
 
   const handleCodeChange = (value: string | undefined) => {
-    if (activeTab && value !== undefined) {
+    if (activeTab) {
       setFileContents(prev => ({
         ...prev,
-        [activeTab.path]: value,
+        [activeTab.path]: value || '',
       }));
     }
   };

@@ -39,7 +39,7 @@ export default function IDEWorkspace() {
   const [showSettings, setShowSettings] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
   const [gitBranch, setGitBranch] = useState<string>('main');
-  const [settings, setSettings] = useState<Settings>({
+  const [settings, setSettings] = useState<SettingsType>({
     theme: 'dark',
     fontSize: 14,
     aiModel: 'gpt-4',
@@ -256,29 +256,37 @@ export default function IDEWorkspace() {
 
       <div className="flex flex-col h-screen bg-gray-950">
         {/* Top Header */}
-        <header className="bg-gray-900 border-b border-gray-800 px-4 py-2">
+        <header className="bg-slate-900 border-b border-slate-800 px-4 py-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h1 className="text-lg font-bold text-white">🤖 AI Code Agent</h1>
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <span>🌿 {gitBranch}</span>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Code2 className="w-4 h-4 text-white" />
+                </div>
+                <h1 className="text-sm font-semibold text-white">AI Code Agent</h1>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                <GitBranch className="w-3.5 h-3.5" />
+                <span>{gitBranch}</span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowCommandPalette(true)}
-                className="px-3 py-1 text-sm bg-gray-800 text-gray-300 rounded hover:bg-gray-700 flex items-center gap-2"
+                className="px-3 py-1.5 text-xs bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 flex items-center gap-2 transition-all border border-slate-700"
               >
-                <span>⌘K</span> Command Palette
+                <span className="font-mono text-slate-400">⌘K</span>
+                <span>Commands</span>
               </button>
               
               {activeTab && (
                 <button
                   onClick={handleSaveFile}
-                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                  className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center gap-1.5"
                 >
-                  💾 Save
+                  <Save className="w-3.5 h-3.5" />
+                  Save
                 </button>
               )}
 
@@ -286,24 +294,26 @@ export default function IDEWorkspace() {
                 <>
                   <button
                     onClick={() => setShowDiff(!showDiff)}
-                    className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm"
+                    className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all flex items-center gap-1.5"
                   >
-                    {showDiff ? 'Hide Diff' : 'Show Diff'}
+                    <FileText className="w-3.5 h-3.5" />
+                    {showDiff ? 'Hide' : 'Show'} Diff
                   </button>
                   <button
                     onClick={handleApplyModifications}
-                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                    className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center gap-1.5"
                   >
-                    ✅ Apply
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Apply
                   </button>
                 </>
               )}
 
               <button
                 onClick={() => setShowSettings(true)}
-                className="p-2 text-gray-400 hover:text-white"
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
               >
-                ⚙️
+                <Settings className="w-4 h-4" />
               </button>
             </div>
           </div>

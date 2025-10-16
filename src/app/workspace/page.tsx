@@ -322,7 +322,16 @@ export default function IDEWorkspace() {
 
         {showCommandPalette && (
           <CommandPalette
+            isOpen={showCommandPalette}
             onClose={() => setShowCommandPalette(false)}
+            commands={[
+              {
+                id: 'save',
+                label: 'Save File',
+                action: handleSaveFile,
+                shortcut: '⌘S',
+              },
+            ]}
           />
         )}
 

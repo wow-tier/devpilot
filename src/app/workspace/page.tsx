@@ -68,7 +68,7 @@ export default function IDEWorkspace() {
   const activeContent = activeTab ? fileContents[activeTab.path] || '' : '';
 
   // Files state management  
-  const [files, setFiles] = useState<{ name: string; isDirectory: boolean }[]>([]);
+  const [, setFiles] = useState<{ name: string; isDirectory: boolean }[]>([]);
 
   // Load files function - defined early so it can be called from clone
   const loadFiles = async (directory = '.', customRepoPath?: string) => {

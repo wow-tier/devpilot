@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Folder, FolderOpen, FileText, FileCode, FilePlus, 
   FolderPlus, RefreshCw, Edit2, Trash2, ChevronRight, ChevronDown 
@@ -43,7 +43,7 @@ export default function ImprovedFileExplorer({
 
   useEffect(() => {
     loadFiles('.');
-  }, [repoPath]);
+  }, [loadFiles]);
 
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
@@ -51,7 +51,7 @@ export default function ImprovedFileExplorer({
     return () => window.removeEventListener('click', handleClick);
   }, []);
 
-  const loadFiles = async (path: string) => {
+  const loadFiles = useCallback(async (path: string) => {
     setIsLoading(true);
     try {
       const queryParams = new URLSearchParams();
@@ -74,7 +74,7 @@ export default function ImprovedFileExplorer({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [repoPath]);
 
   const handleFileClick = (file: FileInfo) => {
     if (file.type === 'directory') {

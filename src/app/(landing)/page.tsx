@@ -81,7 +81,7 @@ export default function LandingPage() {
             <span className="text-sm text-slate-400 font-mono">workspace/example.ts</span>
           </div>
           <div className="bg-slate-950 p-8 font-mono text-sm">
-            <div className="text-green-400 mb-2">// AI: Adding error handling...</div>
+            <div className="text-green-400 mb-2">{'// AI: Adding error handling...'}</div>
             <div className="text-slate-300">
               <span className="text-purple-400">export class</span>{' '}
               <span className="text-yellow-400">UserService</span>{' {'}

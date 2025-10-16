@@ -314,7 +314,7 @@ export default function IDEWorkspace() {
                 onClick={() => setShowSettings(true)}
                 className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
               >
-                <Settings className="w-4 h-4" />
+                <SettingsIcon className="w-4 h-4" />
               </button>
             </div>
           </div>

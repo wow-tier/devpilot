@@ -59,6 +59,8 @@ export async function POST(req: NextRequest) {
 
     const { name, url, branch, description } = await req.json();
 
+    console.log('Creating repository with data:', { name, url, branch, description });
+
     if (!name || !url) {
       return NextResponse.json(
         { error: 'Name and URL are required' },
@@ -72,6 +74,8 @@ export async function POST(req: NextRequest) {
       branch,
       description,
     });
+
+    console.log('Repository created in database:', repository);
 
     return NextResponse.json({
       success: true,

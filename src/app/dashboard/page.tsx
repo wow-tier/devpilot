@@ -125,6 +125,13 @@ export default function DashboardPage() {
         return;
       }
 
+      console.log('Adding repository:', {
+        name: newRepo.name,
+        url: newRepo.url,
+        branch: newRepo.branch,
+        description: newRepo.description,
+      });
+
       const response = await fetch('/api/repositories', {
         method: 'POST',
         headers: {
@@ -141,11 +148,15 @@ export default function DashboardPage() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Repository created:', data.repository);
+        
+        // Add the new repository to the list
         setRepositories([...repositories, data.repository]);
         setNewRepo({ name: '', url: '', branch: 'main', description: '' });
         setShowAddRepo(false);
       } else {
         const data = await response.json();
+        console.error('Failed to add repository:', data);
         setError(data.error || 'Failed to add repository');
       }
     } catch (error) {

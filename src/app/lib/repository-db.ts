@@ -3,7 +3,7 @@ import prisma from './db';
 export async function getUserRepositories(userId: string) {
   return await prisma.repository.findMany({
     where: { userId },
-    orderBy: { lastAccessed: 'desc' },
+    orderBy: { lastAccessedAt: 'desc' },
   });
 }
 
@@ -21,9 +21,10 @@ export async function createRepository(
       userId,
       name: data.name,
       url: data.url,
-      branch: data.branch || 'main',
+      defaultBranch: data.branch || 'main',
       description: data.description,
-      lastAccessed: new Date(),
+      lastAccessedAt: new Date(),
+      isActive: true,
     },
   });
 }
@@ -31,9 +32,9 @@ export async function createRepository(
 export async function updateRepository(id: string, userId: string, data: Partial<{
   name: string;
   url: string;
-  branch: string;
+  defaultBranch: string;
   description: string;
-  lastAccessed: Date;
+  lastAccessedAt: Date;
 }>) {
   return await prisma.repository.update({
     where: { id, userId },
@@ -56,6 +57,6 @@ export async function getRepository(id: string, userId: string) {
 export async function updateLastAccessed(id: string, userId: string) {
   return await prisma.repository.update({
     where: { id, userId },
-    data: { lastAccessed: new Date() },
+    data: { lastAccessedAt: new Date() },
   });
 }

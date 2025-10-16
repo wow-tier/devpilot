@@ -155,11 +155,16 @@ export default function IDEWorkspace() {
       console.log('Clone API response:', data);
 
       if (response.ok) {
-        console.log('Repository cloned successfully to:', data.path);
-        console.log('Repository details:', data.repository);
+        console.log('✅ Repository cloned successfully to:', data.path);
+        console.log('✅ Repository details:', data.repository);
         
         setRepoPath(data.path);
         setShowWelcome(false);
+        
+        // Load files from the cloned repository
+        console.log('📂 NOW LOADING FILES from cloned repo:', data.path);
+        loadFiles('.', data.path);
+        
         loadGitStatus(data.path);
       } else {
         console.error('Clone failed:', data.error);

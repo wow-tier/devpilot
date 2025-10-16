@@ -86,6 +86,7 @@ export default function IDEWorkspace() {
       // No repository selected, show welcome
       setShowWelcome(true);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cloneRepository = async (repositoryId: string) => {

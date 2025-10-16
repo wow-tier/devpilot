@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Code2, GitBranch, Save, FileText, CheckCircle, Settings as SettingsIcon, Loader2 } from 'lucide-react';
+import { 
+  Code2, GitBranch, Save, FileText, CheckCircle, Settings as SettingsIcon, 
+  Loader2, Files, Search, GitPullRequest, Terminal as TerminalIcon,
+  MessageSquare, PanelLeftClose, PanelLeftOpen, Split
+} from 'lucide-react';
+import { AppShell, SplitPane, GlassPanel, AccentButton } from '../components/ui';
 import Sidebar from '../components/Sidebar';
 import AIChat from '../components/AIChat';
 import WelcomeScreen from '../components/WelcomeScreen';
@@ -19,7 +24,14 @@ import DiffPreview from '../components/DiffPreview';
 
 const CodeEditor = dynamic(() => import('../components/Editor'), {
   ssr: false,
-  loading: () => <div className="flex items-center justify-center h-full text-gray-400">Loading editor...</div>,
+  loading: () => (
+    <div className="flex items-center justify-center h-full">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-accent-blue" />
+        <p className="text-sm text-cursor-text-secondary">Loading editor...</p>
+      </div>
+    </div>
+  ),
 });
 
 interface Modification {
@@ -37,6 +49,8 @@ interface Repository {
   description?: string;
 }
 
+type ActivityTab = 'files' | 'search' | 'git' | 'ai';
+
 export default function IDEWorkspace() {
   // State management
   const [tabs, setTabs] = useState<Tab[]>([]);
@@ -48,6 +62,9 @@ export default function IDEWorkspace() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [showRightPanel, setShowRightPanel] = useState(true);
+  const [activeActivity, setActiveActivity] = useState<ActivityTab>('files');
   const [gitBranch, setGitBranch] = useState<string>('main');
   const [currentRepo, setCurrentRepo] = useState<Repository | null>(null);
   const [repoPath, setRepoPath] = useState<string>('');
@@ -66,70 +83,45 @@ export default function IDEWorkspace() {
 
   const activeTab = tabs.find(t => t.id === activeTabId);
   const activeContent = activeTab ? fileContents[activeTab.path] || '' : '';
-
-  // Files state management  
   const [, setFiles] = useState<{ name: string; isDirectory: boolean }[]>([]);
 
-  // Load files function - defined early so it can be called from clone
   const loadFiles = async (directory = '.', customRepoPath?: string) => {
     try {
       const pathToUse = customRepoPath || repoPath;
-      
-      console.log('📂 Loading files from directory:', directory);
-      console.log('📁 Using repoPath:', pathToUse || 'NONE - will use default workspace ❌');
       
       const queryParams = new URLSearchParams();
       
       if (pathToUse) {
         queryParams.append('repoPath', pathToUse);
-        console.log('✅ RepoPath is SET:', pathToUse);
-      } else {
-        console.error('❌❌❌ RepoPath is EMPTY! Will show workspace files!');
       }
       
       queryParams.append('directory', directory);
       
       const url = `/api/files?${queryParams.toString()}`;
-      console.log('🔗 Files API URL:', url);
-      
       const response = await fetch(url);
       const data = await response.json();
 
       if (response.ok) {
-        console.log('✅ Files loaded:', data.files?.length || 0, 'items');
-        if (data.files && data.files.length > 0) {
-          console.log('📄 First 10 files:', data.files.slice(0, 10).map((f: { name: string }) => f.name).join(', '));
-        }
         setFiles(data.files || []);
-      } else {
-        console.error('❌ Failed to load files:', data);
       }
     } catch (error) {
-      console.error('❌ Error loading files:', error);
+      console.error('Error loading files:', error);
     }
   };
 
   useEffect(() => {
-    // Load repository info from URL params
     const params = new URLSearchParams(window.location.search);
     const repoId = params.get('repo');
     
-    console.log('📍 Workspace mounted');
-    console.log('🔍 Repository ID from URL:', repoId);
-    
     if (repoId) {
-      // Fetch repository from database API
       const fetchRepository = async () => {
         try {
           const token = localStorage.getItem('token');
           
           if (!token) {
-            console.error('❌ No token found');
             setShowWelcome(true);
             return;
           }
-
-          console.log('📡 Fetching repository details for ID:', repoId);
 
           const response = await fetch(`/api/repositories/${repoId}`, {
             headers: {
@@ -139,28 +131,21 @@ export default function IDEWorkspace() {
 
           if (response.ok) {
             const data = await response.json();
-            console.log('✅ Repository fetched from database:', data.repository);
-            
             const repo = data.repository;
             setCurrentRepo(repo);
             setGitBranch(repo.defaultBranch || 'main');
-            
-            // Clone/pull repository
-            console.log('🔄 Starting clone for:', repo.url);
             cloneRepository(repo.id);
           } else {
-            console.error('❌ Failed to fetch repository:', await response.text());
             setShowWelcome(true);
           }
         } catch (error) {
-          console.error('❌ Error fetching repository:', error);
+          console.error('Error fetching repository:', error);
           setShowWelcome(true);
         }
       };
 
       fetchRepository();
     } else {
-      console.warn('⚠️ No repository ID in URL - showing welcome screen');
       setShowWelcome(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -170,8 +155,6 @@ export default function IDEWorkspace() {
     setIsCloning(true);
     setCloneError('');
 
-    console.log('Starting repository clone for ID:', repositoryId);
-
     try {
       const token = localStorage.getItem('token');
       
@@ -180,8 +163,6 @@ export default function IDEWorkspace() {
         setIsCloning(false);
         return;
       }
-
-      console.log('Sending clone request to API...');
 
       const response = await fetch('/api/repositories/clone', {
         method: 'POST',
@@ -194,22 +175,12 @@ export default function IDEWorkspace() {
 
       const data = await response.json();
 
-      console.log('Clone API response:', data);
-
       if (response.ok) {
-        console.log('✅ Repository cloned successfully to:', data.path);
-        console.log('✅ Repository details:', data.repository);
-        
         setRepoPath(data.path);
         setShowWelcome(false);
-        
-        // Load files from the cloned repository
-        console.log('📂 NOW LOADING FILES from cloned repo:', data.path);
         loadFiles('.', data.path);
-        
         loadGitStatus(data.path);
       } else {
-        console.error('Clone failed:', data.error);
         setCloneError(data.error || 'Failed to clone repository');
       }
     } catch (error) {
@@ -226,60 +197,94 @@ export default function IDEWorkspace() {
         e.preventDefault();
         setShowCommandPalette(true);
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
-        setShowSettings(true);
+        if (activeTab) {
+          handleSaveFile();
+        }
       }
       if ((e.metaKey || e.ctrlKey) && e.key === '`') {
         e.preventDefault();
-        setShowTerminal(prev => !prev);
+        setShowTerminal(!showTerminal);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault();
+        setShowSidebar(!showSidebar);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [activeTab, showTerminal, showSidebar]);
 
-  const loadGitStatus = async (path?: string) => {
+  const loadGitStatus = async (path: string) => {
     try {
-      const targetPath = path || repoPath;
-      const response = await fetch(`/api/git?action=status&repoPath=${encodeURIComponent(targetPath)}`);
+      const queryParams = new URLSearchParams();
+      if (path) queryParams.append('repoPath', path);
+      
+      const response = await fetch(`/api/git?${queryParams.toString()}`);
       const data = await response.json();
       
-      if (data.success) {
-        setGitBranch(data.status.current || 'main');
+      if (response.ok) {
+        setGitBranch(data.currentBranch);
       }
     } catch (error) {
-      console.error('Error loading git status:', error);
+      console.error('Error loading Git status:', error);
     }
   };
 
   const handleFileSelect = async (filePath: string) => {
     try {
-      const response = await fetch(`/api/files/${encodeURIComponent(filePath)}?repoPath=${encodeURIComponent(repoPath)}`);
+      const queryParams = new URLSearchParams();
+      queryParams.append('filePath', filePath);
+      if (repoPath) queryParams.append('repoPath', repoPath);
+
+      const response = await fetch(`/api/files/${encodeURIComponent(filePath)}?${queryParams.toString()}`);
       const data = await response.json();
 
-      if (data.success) {
-        const newTab: Tab = {
-          id: filePath,
-          label: filePath.split('/').pop() || filePath,
-          path: filePath,
-        };
-
-        if (!tabs.find(t => t.id === filePath)) {
-          setTabs([...tabs, newTab]);
-        }
-
+      if (response.ok) {
         setFileContents(prev => ({
           ...prev,
-          [filePath]: data.content,
+          [filePath]: data.content
         }));
 
-        setActiveTabId(filePath);
-        setShowWelcome(false);
+        const existingTab = tabs.find(t => t.path === filePath);
+        if (!existingTab) {
+          const newTab: Tab = {
+            id: `tab-${Date.now()}`,
+            label: filePath.split('/').pop() || filePath,
+            path: filePath,
+            language: data.language || 'plaintext',
+            isDirty: false,
+          };
+          setTabs(prev => [...prev, newTab]);
+          setActiveTabId(newTab.id);
+        } else {
+          setActiveTabId(existingTab.id);
+        }
       }
     } catch (error) {
       console.error('Error loading file:', error);
+    }
+  };
+
+  const handleCodeChange = (value: string | undefined) => {
+    if (activeTab && value !== undefined) {
+      setFileContents(prev => ({
+        ...prev,
+        [activeTab.path]: value
+      }));
+
+      setTabs(prevTabs => prevTabs.map(tab =>
+        tab.id === activeTabId ? { ...tab, isDirty: true } : tab
+      ));
+
+      if (settings.autoSave) {
+        const timeoutId = setTimeout(() => {
+          handleSaveFile();
+        }, 1000);
+        return () => clearTimeout(timeoutId);
+      }
     }
   };
 
@@ -287,38 +292,57 @@ export default function IDEWorkspace() {
     if (!activeTab) return;
 
     try {
-      const response = await fetch('/api/files', {
-        method: 'POST',
+      const queryParams = new URLSearchParams();
+      if (repoPath) queryParams.append('repoPath', repoPath);
+
+      await fetch(`/api/files/${encodeURIComponent(activeTab.path)}?${queryParams.toString()}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filePath: activeTab.path,
-          content: activeContent,
-          repoPath,
-        }),
+        body: JSON.stringify({ content: fileContents[activeTab.path] }),
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        console.log('File saved successfully');
-      }
+      setTabs(prevTabs => prevTabs.map(tab =>
+        tab.id === activeTabId ? { ...tab, isDirty: false } : tab
+      ));
     } catch (error) {
       console.error('Error saving file:', error);
     }
   };
 
+  const handleTabClose = (tabId: string) => {
+    const tabIndex = tabs.findIndex(t => t.id === tabId);
+    setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId));
+    
+    if (activeTabId === tabId && tabs.length > 1) {
+      const newActiveIndex = tabIndex > 0 ? tabIndex - 1 : 0;
+      setActiveTabId(tabs[newActiveIndex].id);
+    } else if (tabs.length === 1) {
+      setActiveTabId('');
+    }
+  };
+
   const handlePromptSubmit = async (prompt: string) => {
+    if (!currentRepo || !repoPath) return;
+
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/prompt', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, repoPath }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          prompt,
+          repoPath,
+          currentFile: activeTab?.path,
+        }),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        setModifications(data.modifications || []);
+      if (response.ok && data.modifications) {
+        setModifications(data.modifications);
         setShowDiff(true);
       }
     } catch (error) {
@@ -328,204 +352,267 @@ export default function IDEWorkspace() {
 
   const handleApplyModifications = async () => {
     for (const mod of modifications) {
-      await fetch('/api/files', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filePath: mod.filePath,
-          content: mod.modifiedContent,
-          repoPath,
-        }),
-      });
+      try {
+        const queryParams = new URLSearchParams();
+        if (repoPath) queryParams.append('repoPath', repoPath);
 
-      setFileContents(prev => ({
-        ...prev,
-        [mod.filePath]: mod.modifiedContent,
-      }));
+        await fetch(`/api/files/${encodeURIComponent(mod.filePath)}?${queryParams.toString()}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: mod.modifiedContent }),
+        });
+
+        setFileContents(prev => ({
+          ...prev,
+          [mod.filePath]: mod.modifiedContent
+        }));
+
+        const tab = tabs.find(t => t.path === mod.filePath);
+        if (tab) {
+          setTabs(prevTabs => prevTabs.map(t =>
+            t.id === tab.id ? { ...t, isDirty: false } : t
+          ));
+        }
+      } catch (error) {
+        console.error('Error applying modification:', error);
+      }
     }
 
     setModifications([]);
     setShowDiff(false);
   };
 
-  const handleTabClose = (tabId: string) => {
-    const newTabs = tabs.filter(t => t.id !== tabId);
-    setTabs(newTabs);
-    
-    if (activeTabId === tabId) {
-      setActiveTabId(newTabs[newTabs.length - 1]?.id || '');
-    }
-  };
-
-  const handleCodeChange = (value: string | undefined) => {
-    if (activeTab) {
-      setFileContents(prev => ({
-        ...prev,
-        [activeTab.path]: value || '',
-      }));
-    }
-  };
-
-  if (isCloning) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-950">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-white mb-2">
-            Cloning Repository...
-          </h2>
-          <p className="text-slate-400">
-            {currentRepo?.name} from {currentRepo?.url}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (cloneError) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-950">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">⚠️</span>
-          </div>
-          <h2 className="text-xl font-semibold text-white mb-2">
-            Failed to Clone Repository
-          </h2>
-          <p className="text-red-400 mb-4">{cloneError}</p>
-          <button
-            onClick={() => window.location.href = '/dashboard'}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all"
-          >
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <ErrorBoundary>
-      <div className="flex flex-col h-screen bg-slate-950">
-        <KeyboardShortcuts
-          onSave={handleSaveFile}
-          onToggleDiff={() => setShowDiff(!showDiff)}
-          onFocusChat={() => {}}
-        />
-
+      <div className="h-screen w-screen bg-cursor-base text-cursor-text flex flex-col overflow-hidden">
+        {/* Command Palette */}
         {showCommandPalette && (
           <CommandPalette
             isOpen={showCommandPalette}
             onClose={() => setShowCommandPalette(false)}
             commands={[
               {
-                id: 'save',
-                label: 'Save File',
-                action: handleSaveFile,
-                shortcut: '⌘S',
+                id: 'toggle-terminal',
+                label: 'Toggle Terminal',
+                action: () => { setShowTerminal(!showTerminal); setShowCommandPalette(false); },
+                shortcut: '⌘`',
+              },
+              {
+                id: 'toggle-sidebar',
+                label: 'Toggle Sidebar',
+                action: () => { setShowSidebar(!showSidebar); setShowCommandPalette(false); },
+                shortcut: '⌘B',
               },
             ]}
           />
         )}
 
+        {/* Settings Panel */}
         {showSettings && (
           <SettingsPanel
             isOpen={showSettings}
-            onClose={() => setShowSettings(false)}
             settings={settings}
             onSettingsChange={setSettings}
+            onClose={() => setShowSettings(false)}
           />
         )}
 
-        {/* Top Header */}
-        <header className="bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Code2 className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-sm font-semibold text-white">
-                    {currentRepo?.name || 'AI Code Agent'}
-                  </h1>
-                  {currentRepo && (
-                    <p className="text-xs text-slate-400 truncate max-w-md">
-                      {currentRepo.url}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-github-bg-tertiary rounded-lg text-xs text-github-text-secondary border border-github-border">
-                <GitBranch className="w-3.5 h-3.5 text-github-accent" />
-                <span className="font-mono text-github-text">{gitBranch}</span>
-              </div>
-            </div>
+        <KeyboardShortcuts />
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowCommandPalette(true)}
-                className="px-3 py-2 text-xs bg-github-bg-tertiary text-github-text-secondary rounded-lg hover:bg-github-border hover:text-github-text flex items-center gap-2 transition-all border border-github-border hover:border-github-accent/30"
-              >
-                <span className="font-mono text-github-text-muted">⌘K</span>
-                <span>Commands</span>
-              </button>
-              
-              {activeTab && (
-                <button
-                  onClick={handleSaveFile}
-                  className="px-3 py-2 text-xs bg-github-success text-white rounded-lg hover:bg-github-success-hover transition-all flex items-center gap-1.5 shadow-glow-green"
+        {/* Loading/Error States */}
+        {isCloning && (
+          <div className="fixed inset-0 bg-cursor-base/95 backdrop-blur-sm flex items-center justify-center z-50">
+            <GlassPanel className="p-8 max-w-md">
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="w-12 h-12 animate-spin text-accent-blue" />
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold mb-2">Cloning Repository</h3>
+                  <p className="text-sm text-cursor-text-secondary">
+                    {currentRepo?.name || 'Repository'}
+                  </p>
+                </div>
+              </div>
+            </GlassPanel>
+          </div>
+        )}
+
+        {cloneError && (
+          <div className="fixed top-4 right-4 z-50">
+            <GlassPanel className="p-4 bg-danger/10 border-danger/30">
+              <p className="text-sm text-danger">{cloneError}</p>
+            </GlassPanel>
+          </div>
+        )}
+
+        {/* Header */}
+        <header className="h-12 border-b border-cursor-border bg-cursor-surface flex items-center justify-between px-4 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <Code2 className="w-5 h-5 text-accent-blue" />
+            {currentRepo && (
+              <>
+                <span className="text-cursor-text-secondary">/</span>
+                <span className="text-sm font-medium text-cursor-text">{currentRepo.name}</span>
+              </>
+            )}
+            {activeTab && (
+              <>
+                <span className="text-cursor-text-secondary">/</span>
+                <Breadcrumbs path={activeTab.path} />
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {activeTab?.isDirty && (
+              <AccentButton size="sm" onClick={handleSaveFile} icon={<Save className="w-3.5 h-3.5" />}>
+                Save
+              </AccentButton>
+            )}
+
+            {modifications.length > 0 && (
+              <>
+                <AccentButton 
+                  size="sm" 
+                  variant="secondary"
+                  onClick={() => setShowDiff(!showDiff)} 
+                  icon={<FileText className="w-3.5 h-3.5" />}
                 >
-                  <Save className="w-3.5 h-3.5" />
-                  Save
-                </button>
-              )}
+                  {showDiff ? 'Hide' : 'Show'} Diff
+                </AccentButton>
+                <AccentButton 
+                  size="sm"
+                  onClick={handleApplyModifications} 
+                  icon={<CheckCircle className="w-3.5 h-3.5" />}
+                >
+                  Apply
+                </AccentButton>
+              </>
+            )}
 
-              {modifications.length > 0 && (
-                <>
-                  <button
-                    onClick={() => setShowDiff(!showDiff)}
-                    className="px-3 py-2 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all flex items-center gap-1.5"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    {showDiff ? 'Hide' : 'Show'} Diff
-                  </button>
-                  <button
-                    onClick={handleApplyModifications}
-                    className="px-3 py-2 text-xs bg-github-success text-white rounded-lg hover:bg-github-success-hover transition-all flex items-center gap-1.5"
-                  >
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    Apply
-                  </button>
-                </>
-              )}
-
-              <button
-                onClick={() => setShowSettings(true)}
-                className="p-2 text-github-text-muted hover:text-github-text hover:bg-github-bg-tertiary rounded-lg transition-all"
-              >
-                <SettingsIcon className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 text-cursor-text-muted hover:text-cursor-text hover:bg-cursor-surface-hover rounded-cursor-sm transition-all"
+            >
+              <SettingsIcon className="w-4 h-4" />
+            </button>
           </div>
         </header>
 
         {/* Main Content */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar */}
-          <div className="w-64 border-r border-slate-800">
-            <Sidebar
-              onFileSelect={handleFileSelect}
-              selectedFile={activeTab?.path}
-              onFileCreate={() => {}}
-              onFileDelete={() => {}}
-              onFileRename={() => {}}
-              repoPath={repoPath}
-            />
+          {/* Activity Bar */}
+          <div className="w-12 bg-cursor-surface border-r border-cursor-border flex flex-col items-center py-2 gap-1 flex-shrink-0">
+            <button
+              onClick={() => { setActiveActivity('files'); setShowSidebar(true); }}
+              className={`w-10 h-10 rounded-cursor-sm flex items-center justify-center transition-all ${
+                activeActivity === 'files' && showSidebar
+                  ? 'bg-accent-blue/20 text-accent-blue'
+                  : 'text-cursor-text-muted hover:text-cursor-text hover:bg-cursor-surface-hover'
+              }`}
+              title="Explorer"
+            >
+              <Files className="w-5 h-5" />
+            </button>
+            
+            <button
+              onClick={() => { setActiveActivity('search'); setShowSidebar(true); }}
+              className={`w-10 h-10 rounded-cursor-sm flex items-center justify-center transition-all ${
+                activeActivity === 'search' && showSidebar
+                  ? 'bg-accent-blue/20 text-accent-blue'
+                  : 'text-cursor-text-muted hover:text-cursor-text hover:bg-cursor-surface-hover'
+              }`}
+              title="Search"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+            
+            <button
+              onClick={() => { setActiveActivity('git'); setShowSidebar(true); }}
+              className={`w-10 h-10 rounded-cursor-sm flex items-center justify-center transition-all ${
+                activeActivity === 'git' && showSidebar
+                  ? 'bg-accent-blue/20 text-accent-blue'
+                  : 'text-cursor-text-muted hover:text-cursor-text hover:bg-cursor-surface-hover'
+              }`}
+              title="Source Control"
+            >
+              <GitPullRequest className="w-5 h-5" />
+            </button>
+
+            <div className="flex-1" />
+
+            <button
+              onClick={() => setShowTerminal(!showTerminal)}
+              className={`w-10 h-10 rounded-cursor-sm flex items-center justify-center transition-all ${
+                showTerminal
+                  ? 'bg-accent-blue/20 text-accent-blue'
+                  : 'text-cursor-text-muted hover:text-cursor-text hover:bg-cursor-surface-hover'
+              }`}
+              title="Terminal"
+            >
+              <TerminalIcon className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={() => setShowRightPanel(!showRightPanel)}
+              className={`w-10 h-10 rounded-cursor-sm flex items-center justify-center transition-all ${
+                showRightPanel
+                  ? 'bg-accent-blue/20 text-accent-blue'
+                  : 'text-cursor-text-muted hover:text-cursor-text hover:bg-cursor-surface-hover'
+              }`}
+              title="AI Assistant"
+            >
+              <MessageSquare className="w-5 h-5" />
+            </button>
           </div>
 
+          {/* Sidebar */}
+          {showSidebar && (
+            <div className="w-64 border-r border-cursor-border bg-cursor-surface flex-shrink-0">
+              <div className="h-full flex flex-col">
+                <div className="h-10 border-b border-cursor-border flex items-center justify-between px-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-cursor-text-secondary">
+                    {activeActivity === 'files' && 'Explorer'}
+                    {activeActivity === 'search' && 'Search'}
+                    {activeActivity === 'git' && 'Source Control'}
+                  </h3>
+                  <button
+                    onClick={() => setShowSidebar(false)}
+                    className="text-cursor-text-muted hover:text-cursor-text"
+                  >
+                    <PanelLeftClose className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-auto">
+                  {activeActivity === 'files' && (
+                    <Sidebar
+                      onFileSelect={handleFileSelect}
+                      selectedFile={activeTab?.path}
+                      onFileCreate={() => {}}
+                      onFileDelete={() => {}}
+                      onFileRename={() => {}}
+                      repoPath={repoPath}
+                    />
+                  )}
+                  {activeActivity === 'search' && (
+                    <div className="p-4 text-cursor-text-secondary text-sm">
+                      Search functionality coming soon...
+                    </div>
+                  )}
+                  {activeActivity === 'git' && (
+                    <div className="p-4">
+                      <div className="flex items-center gap-2 text-sm text-cursor-text-secondary">
+                        <GitBranch className="w-4 h-4" />
+                        <span>{gitBranch}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Editor Area */}
-          <div className="flex-1 flex flex-col bg-github-bg">
+          <div className="flex-1 flex flex-col overflow-hidden">
             {tabs.length > 0 && (
               <TabBar
                 tabs={tabs}
@@ -535,15 +622,11 @@ export default function IDEWorkspace() {
               />
             )}
 
-            {activeTab && (
-              <Breadcrumbs path={activeTab.path} />
-            )}
-
-            <div className="flex-1 overflow-hidden bg-github-bg">
+            <div className="flex-1 overflow-hidden">
               {showWelcome ? (
                 <WelcomeScreen onGetStarted={() => setShowWelcome(false)} />
               ) : activeTab ? (
-                <div className="h-full bg-github-bg">
+                <div className="h-full bg-cursor-base">
                   <CodeEditor
                     value={activeContent}
                     onChange={handleCodeChange}
@@ -556,18 +639,18 @@ export default function IDEWorkspace() {
                   />
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-github-text-muted bg-github-bg">
-                  <div className="text-6xl mb-6 opacity-60">📝</div>
-                  <h3 className="text-xl font-semibold text-github-text mb-3">No file selected</h3>
-                  <p className="text-github-text-secondary text-center max-w-md">
-                    Choose a file from the explorer to start editing, or create a new file to get started.
+                <div className="flex flex-col items-center justify-center h-full text-cursor-text-muted">
+                  <div className="text-6xl mb-6 opacity-40">📝</div>
+                  <h3 className="text-xl font-semibold text-cursor-text mb-3">No file selected</h3>
+                  <p className="text-cursor-text-secondary text-center max-w-md">
+                    Choose a file from the explorer to start editing
                   </p>
                 </div>
               )}
             </div>
 
             {showDiff && modifications.length > 0 && (
-              <div className="border-t border-github-border p-6 max-h-96 overflow-auto bg-github-bg-secondary/50">
+              <div className="border-t border-cursor-border p-6 max-h-96 overflow-auto bg-cursor-surface">
                 {modifications.map((mod, index) => (
                   <DiffPreview
                     key={index}
@@ -580,16 +663,18 @@ export default function IDEWorkspace() {
             )}
 
             {showTerminal && (
-              <div className="border-t border-github-border h-64 bg-github-bg-secondary">
+              <div className="border-t border-cursor-border h-64 bg-cursor-surface">
                 <Terminal />
               </div>
             )}
           </div>
 
-          {/* AI Chat */}
-          <div className="w-80 border-l border-github-border bg-github-bg-secondary/30">
-            <AIChat onPromptSubmit={handlePromptSubmit} />
-          </div>
+          {/* Right Panel - AI Chat */}
+          {showRightPanel && (
+            <div className="w-80 border-l border-cursor-border bg-cursor-surface flex-shrink-0">
+              <AIChat onPromptSubmit={handlePromptSubmit} />
+            </div>
+          )}
         </div>
 
         {/* Status Bar */}

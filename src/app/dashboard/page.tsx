@@ -196,7 +196,12 @@ export default function DashboardPage() {
   };
 
   const handleOpenWorkspace = (repo: Repository) => {
-    localStorage.setItem('currentRepo', JSON.stringify(repo));
+    console.log('🚀 Opening workspace for repository:', repo.name);
+    console.log('🔗 Repository ID:', repo.id);
+    console.log('🔗 Repository URL:', repo.url);
+    console.log('📂 Navigation URL:', `/workspace?repo=${repo.id}`);
+    
+    // Navigate to workspace with repo ID (workspace will fetch from database)
     router.push(`/workspace?repo=${repo.id}`);
   };
 

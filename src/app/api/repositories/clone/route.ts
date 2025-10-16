@@ -46,6 +46,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log('Cloning repository:', {
+      id: repository.id,
+      name: repository.name,
+      url: repository.url,
+      branch: repository.defaultBranch,
+    });
+
     // Create user-specific directory
     const userRepoDir = path.join(REPOS_BASE_DIR, user.id);
     await fs.mkdir(userRepoDir, { recursive: true });
@@ -54,12 +61,23 @@ export async function POST(req: NextRequest) {
     const repoName = repository.name.replace(/[^a-zA-Z0-9-_]/g, '-');
     const clonePath = path.join(userRepoDir, repoName);
 
+    console.log('Clone path:', clonePath);
+
     // Check if already cloned
     try {
       await fs.access(clonePath);
+      console.log('Repository already exists, pulling latest...');
+      
       // Repository already exists, pull latest changes
       const git = simpleGit(clonePath);
       await git.pull();
+
+      // Update last accessed
+      await updateRepository(repositoryId, user.id, {
+        lastAccessedAt: new Date(),
+      });
+
+      console.log('Repository updated successfully');
 
       return NextResponse.json({
         success: true,
@@ -68,26 +86,37 @@ export async function POST(req: NextRequest) {
         repository,
       });
     } catch {
+      console.log('Repository does not exist, cloning from GitHub...');
+      
       // Repository doesn't exist, clone it
       const git = simpleGit();
       
-      await git.clone(repository.url, clonePath, [
-        '--branch',
-        repository.defaultBranch || 'main',
-        '--single-branch',
-      ]);
+      try {
+        await git.clone(repository.url, clonePath, [
+          '--branch',
+          repository.defaultBranch || 'main',
+          '--single-branch',
+          '--depth',
+          '1',
+        ]);
 
-      // Update repository with local path
-      await updateRepository(repositoryId, user.id, {
-        lastAccessedAt: new Date(),
-      });
+        console.log('Repository cloned successfully from:', repository.url);
 
-      return NextResponse.json({
-        success: true,
-        message: 'Repository cloned successfully',
-        path: clonePath,
-        repository,
-      });
+        // Update repository with local path
+        await updateRepository(repositoryId, user.id, {
+          lastAccessedAt: new Date(),
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: 'Repository cloned successfully',
+          path: clonePath,
+          repository,
+        });
+      } catch (cloneError) {
+        console.error('Git clone error:', cloneError);
+        throw new Error(`Failed to clone repository: ${cloneError instanceof Error ? cloneError.message : 'Unknown error'}`);
+      }
     }
   } catch (error) {
     console.error('Error cloning repository:', error);

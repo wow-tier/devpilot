@@ -93,6 +93,8 @@ export default function IDEWorkspace() {
     setIsCloning(true);
     setCloneError('');
 
+    console.log('Starting repository clone for ID:', repositoryId);
+
     try {
       const token = localStorage.getItem('token');
       
@@ -101,6 +103,8 @@ export default function IDEWorkspace() {
         setIsCloning(false);
         return;
       }
+
+      console.log('Sending clone request to API...');
 
       const response = await fetch('/api/repositories/clone', {
         method: 'POST',
@@ -113,11 +117,17 @@ export default function IDEWorkspace() {
 
       const data = await response.json();
 
+      console.log('Clone API response:', data);
+
       if (response.ok) {
+        console.log('Repository cloned successfully to:', data.path);
+        console.log('Repository details:', data.repository);
+        
         setRepoPath(data.path);
         setShowWelcome(false);
         loadGitStatus(data.path);
       } else {
+        console.error('Clone failed:', data.error);
         setCloneError(data.error || 'Failed to clone repository');
       }
     } catch (error) {

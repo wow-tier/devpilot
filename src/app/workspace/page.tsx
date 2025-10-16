@@ -15,7 +15,7 @@ import SettingsPanel, { Settings } from '../components/SettingsPanel';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DiffPreview from '../components/DiffPreview';
 
-const CodeEditor = dynamic(() => import('./components/Editor'), {
+const CodeEditor = dynamic(() => import('../components/Editor'), {
   ssr: false,
   loading: () => <div className="flex items-center justify-center h-full text-gray-400">Loading editor...</div>,
 });

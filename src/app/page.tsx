@@ -6,11 +6,15 @@ import FileExplorer from './components/FileExplorer';
 import AIChat from './components/AIChat';
 import GitPanel from './components/GitPanel';
 import DiffPreview from './components/DiffPreview';
+import WelcomeScreen from './components/WelcomeScreen';
+import StatusBar from './components/StatusBar';
+import KeyboardShortcuts from './components/KeyboardShortcuts';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Dynamically import Monaco Editor to avoid SSR issues
 const CodeEditor = dynamic(() => import('./components/Editor'), {
   ssr: false,
-  loading: () => <div className="flex items-center justify-center h-full">Loading editor...</div>,
+  loading: () => <div className="flex items-center justify-center h-full text-gray-400">Loading editor...</div>,
 });
 
 interface Modification {
@@ -27,13 +31,33 @@ export default function HomePage() {
   const [modifications, setModifications] = useState<Modification[]>([]);
   const [showDiff, setShowDiff] = useState(false);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
+  const [gitBranch, setGitBranch] = useState<string>('main');
 
   // Load file content when a file is selected
   useEffect(() => {
     if (selectedFile) {
       loadFile(selectedFile);
+      setShowWelcome(false);
     }
   }, [selectedFile]);
+
+  // Load git status on mount
+  useEffect(() => {
+    loadGitStatus();
+  }, []);
+
+  const loadGitStatus = async () => {
+    try {
+      const response = await fetch('/api/git?action=status');
+      const data = await response.json();
+      if (data.success) {
+        setGitBranch(data.status.branch);
+      }
+    } catch (error) {
+      console.error('Error loading git status:', error);
+    }
+  };
 
   const loadFile = async (filePath: string) => {
     setIsLoadingFile(true);
@@ -142,48 +166,57 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-950">
-      {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-800 px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-white">🤖 AI Code Agent</h1>
-            {selectedFile && (
-              <span className="text-sm text-gray-400">
-                {selectedFile}
-              </span>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {selectedFile && (
-              <button
-                onClick={handleSaveFile}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm"
-              >
-                💾 Save
-              </button>
-            )}
+    <ErrorBoundary>
+      <KeyboardShortcuts
+        onSave={handleSaveFile}
+        onToggleDiff={() => setShowDiff(!showDiff)}
+        onFocusChat={() => (document.querySelector('input[type="text"]') as HTMLInputElement)?.focus()}
+      />
+      
+      <div className="flex flex-col h-screen bg-gray-950">
+        {/* Header */}
+        <header className="bg-gray-900 border-b border-gray-800 px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-bold text-white">🤖 AI Code Agent</h1>
+              {selectedFile && (
+                <span className="text-sm text-gray-400">
+                  {selectedFile}
+                </span>
+              )}
+            </div>
             
-            {modifications.length > 0 && (
-              <>
+            <div className="flex items-center gap-2">
+              {selectedFile && (
                 <button
-                  onClick={() => setShowDiff(!showDiff)}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm"
+                  onClick={handleSaveFile}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm"
+                  title="Save (Cmd/Ctrl+S)"
                 >
-                  {showDiff ? '📝 Hide Diff' : '🔍 Show Diff'}
+                  💾 Save
                 </button>
-                <button
-                  onClick={handleApplyModifications}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm"
-                >
-                  ✅ Apply & Commit
-                </button>
-              </>
-            )}
+              )}
+              
+              {modifications.length > 0 && (
+                <>
+                  <button
+                    onClick={() => setShowDiff(!showDiff)}
+                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm"
+                    title="Toggle Diff (Cmd/Ctrl+D)"
+                  >
+                    {showDiff ? '📝 Hide Diff' : '🔍 Show Diff'}
+                  </button>
+                  <button
+                    onClick={handleApplyModifications}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm"
+                  >
+                    ✅ Apply & Commit
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
@@ -197,11 +230,16 @@ export default function HomePage() {
 
         {/* Center - Code Editor */}
         <div className="flex-1 flex flex-col">
-          {selectedFile ? (
+          {showWelcome && !selectedFile ? (
+            <WelcomeScreen onGetStarted={() => setShowWelcome(false)} />
+          ) : selectedFile ? (
             <>
               {isLoadingFile ? (
                 <div className="flex items-center justify-center h-full text-gray-400">
-                  Loading...
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">⏳</div>
+                    <p>Loading file...</p>
+                  </div>
                 </div>
               ) : (
                 <CodeEditor
@@ -244,6 +282,10 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Status Bar */}
+      <StatusBar currentFile={selectedFile} gitBranch={gitBranch} />
+      </div>
+    </ErrorBoundary>
   );
 }

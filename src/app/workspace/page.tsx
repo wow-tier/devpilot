@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { Code2, GitBranch, Save, FileText, CheckCircle, Settings as SettingsIcon } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import AIChat from '../components/AIChat';
 import WelcomeScreen from '../components/WelcomeScreen';

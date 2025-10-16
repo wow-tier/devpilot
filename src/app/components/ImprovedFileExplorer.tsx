@@ -41,16 +41,6 @@ export default function ImprovedFileExplorer({
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    loadFiles('.');
-  }, [loadFiles]);
-
-  useEffect(() => {
-    const handleClick = () => setContextMenu(null);
-    window.addEventListener('click', handleClick);
-    return () => window.removeEventListener('click', handleClick);
-  }, []);
-
   const loadFiles = useCallback(async (path: string) => {
     setIsLoading(true);
     try {
@@ -75,6 +65,16 @@ export default function ImprovedFileExplorer({
       setIsLoading(false);
     }
   }, [repoPath]);
+
+  useEffect(() => {
+    loadFiles('.');
+  }, [loadFiles]);
+
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
 
   const handleFileClick = (file: FileInfo) => {
     if (file.type === 'directory') {
@@ -120,34 +120,34 @@ export default function ImprovedFileExplorer({
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/50 text-white">
+    <div className="flex flex-col h-full bg-github-bg-secondary/30 text-github-text">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/50 bg-slate-900/80 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-github-border/50 bg-github-bg-secondary/80 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-300">Explorer</h2>
+          <div className="w-2 h-2 bg-github-accent rounded-full"></div>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-github-text">Explorer</h2>
         </div>
         <div className="flex gap-1">
           <button
             onClick={() => onFileCreate?.('new-file.ts', 'file')}
-            className="p-2 hover:bg-slate-800/50 rounded-lg transition-all duration-150 group"
+            className="p-2 hover:bg-github-bg-tertiary rounded-lg transition-all duration-150 group"
             title="New File"
           >
-            <FilePlus className="w-4 h-4 text-slate-400 group-hover:text-blue-400" />
+            <FilePlus className="w-4 h-4 text-github-text-muted group-hover:text-github-accent" />
           </button>
           <button
             onClick={() => onFileCreate?.('new-folder', 'directory')}
-            className="p-2 hover:bg-slate-800/50 rounded-lg transition-all duration-150 group"
+            className="p-2 hover:bg-github-bg-tertiary rounded-lg transition-all duration-150 group"
             title="New Folder"
           >
-            <FolderPlus className="w-4 h-4 text-slate-400 group-hover:text-green-400" />
+            <FolderPlus className="w-4 h-4 text-github-text-muted group-hover:text-github-success" />
           </button>
           <button
             onClick={() => loadFiles('.')}
-            className="p-2 hover:bg-slate-800/50 rounded-lg transition-all duration-150 group"
+            className="p-2 hover:bg-github-bg-tertiary rounded-lg transition-all duration-150 group"
             title="Refresh"
           >
-            <RefreshCw className="w-4 h-4 text-slate-400 group-hover:text-purple-400" />
+            <RefreshCw className="w-4 h-4 text-github-text-muted group-hover:text-purple-400" />
           </button>
         </div>
       </div>
@@ -155,14 +155,14 @@ export default function ImprovedFileExplorer({
       {/* File List */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="p-4 text-center text-slate-500 text-sm">
-            <div className="animate-spin w-4 h-4 border-2 border-slate-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-            Loading...
+          <div className="p-6 text-center text-github-text-muted text-sm">
+            <div className="animate-spin w-5 h-5 border-2 border-github-accent border-t-transparent rounded-full mx-auto mb-3"></div>
+            <p className="text-github-text-secondary">Loading files...</p>
           </div>
         ) : files.length === 0 ? (
-          <div className="p-4 text-center text-slate-500 text-sm">
-            <div className="text-2xl mb-2">📁</div>
-            No files found
+          <div className="p-6 text-center text-github-text-muted text-sm">
+            <div className="text-3xl mb-3 opacity-60">📁</div>
+            <p className="text-github-text-secondary">No files found</p>
           </div>
         ) : (
           <div className="py-1">
@@ -172,10 +172,10 @@ export default function ImprovedFileExplorer({
                 onClick={() => handleFileClick(file)}
                 onContextMenu={(e) => handleContextMenu(e, file)}
                 className={`
-                  flex items-center gap-3 px-4 py-2 cursor-pointer group relative
-                  hover:bg-slate-800/40 transition-all duration-200 text-sm
-                  ${selectedFile === file.path ? 'bg-slate-800/60 border-l-2 border-blue-500 shadow-sm' : ''}
-                  ${file.type === 'directory' ? 'hover:bg-slate-700/20' : 'hover:bg-slate-800/30'}
+                  flex items-center gap-3 px-4 py-2.5 cursor-pointer group relative
+                  hover:bg-github-bg-tertiary/40 transition-all duration-200 text-sm
+                  ${selectedFile === file.path ? 'bg-github-bg-tertiary/60 border-l-2 border-github-accent shadow-sm' : ''}
+                  ${file.type === 'directory' ? 'hover:bg-github-bg-tertiary/30' : 'hover:bg-github-bg-tertiary/40'}
                 `}
               >
                 {getChevron(file)}
@@ -184,15 +184,15 @@ export default function ImprovedFileExplorer({
                 </div>
                 <span className={`flex-1 truncate transition-colors ${
                   selectedFile === file.path 
-                    ? 'text-white font-medium' 
+                    ? 'text-github-text font-semibold' 
                     : file.type === 'directory' 
-                      ? 'text-slate-200 group-hover:text-white' 
-                      : 'text-slate-300 group-hover:text-slate-100'
+                      ? 'text-github-text-secondary group-hover:text-github-text' 
+                      : 'text-github-text-secondary group-hover:text-github-text'
                 }`}>
                   {file.name}
                 </span>
                 {file.type === 'directory' && (
-                  <div className="text-xs text-slate-500 group-hover:text-slate-400 transition-colors">
+                  <div className="text-xs text-github-text-muted group-hover:text-github-text-secondary transition-colors">
                     {expandedDirs.has(file.path) ? '📂' : '📁'}
                   </div>
                 )}

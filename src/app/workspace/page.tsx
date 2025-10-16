@@ -456,25 +456,25 @@ export default function IDEWorkspace() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 px-2 py-1 bg-slate-800/50 rounded-lg text-xs text-slate-300">
-                <GitBranch className="w-3.5 h-3.5 text-blue-400" />
-                <span className="font-mono">{gitBranch}</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-github-bg-tertiary rounded-lg text-xs text-github-text-secondary border border-github-border">
+                <GitBranch className="w-3.5 h-3.5 text-github-accent" />
+                <span className="font-mono text-github-text">{gitBranch}</span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowCommandPalette(true)}
-                className="px-3 py-1.5 text-xs bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 flex items-center gap-2 transition-all border border-slate-700"
+                className="px-3 py-2 text-xs bg-github-bg-tertiary text-github-text-secondary rounded-lg hover:bg-github-border hover:text-github-text flex items-center gap-2 transition-all border border-github-border hover:border-github-accent/30"
               >
-                <span className="font-mono text-slate-400">⌘K</span>
+                <span className="font-mono text-github-text-muted">⌘K</span>
                 <span>Commands</span>
               </button>
               
               {activeTab && (
                 <button
                   onClick={handleSaveFile}
-                  className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center gap-1.5"
+                  className="px-3 py-2 text-xs bg-github-success text-white rounded-lg hover:bg-github-success-hover transition-all flex items-center gap-1.5 shadow-glow-green"
                 >
                   <Save className="w-3.5 h-3.5" />
                   Save
@@ -485,14 +485,14 @@ export default function IDEWorkspace() {
                 <>
                   <button
                     onClick={() => setShowDiff(!showDiff)}
-                    className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all flex items-center gap-1.5"
+                    className="px-3 py-2 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all flex items-center gap-1.5"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     {showDiff ? 'Hide' : 'Show'} Diff
                   </button>
                   <button
                     onClick={handleApplyModifications}
-                    className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center gap-1.5"
+                    className="px-3 py-2 text-xs bg-github-success text-white rounded-lg hover:bg-github-success-hover transition-all flex items-center gap-1.5"
                   >
                     <CheckCircle className="w-3.5 h-3.5" />
                     Apply
@@ -502,7 +502,7 @@ export default function IDEWorkspace() {
 
               <button
                 onClick={() => setShowSettings(true)}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
+                className="p-2 text-github-text-muted hover:text-github-text hover:bg-github-bg-tertiary rounded-lg transition-all"
               >
                 <SettingsIcon className="w-4 h-4" />
               </button>
@@ -525,7 +525,7 @@ export default function IDEWorkspace() {
           </div>
 
           {/* Editor Area */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col bg-github-bg">
             {tabs.length > 0 && (
               <TabBar
                 tabs={tabs}
@@ -539,11 +539,11 @@ export default function IDEWorkspace() {
               <Breadcrumbs path={activeTab.path} />
             )}
 
-            <div className="flex-1 overflow-hidden bg-slate-950">
+            <div className="flex-1 overflow-hidden bg-github-bg">
               {showWelcome ? (
                 <WelcomeScreen onGetStarted={() => setShowWelcome(false)} />
               ) : activeTab ? (
-                <div className="h-full bg-slate-950">
+                <div className="h-full bg-github-bg">
                   <CodeEditor
                     value={activeContent}
                     onChange={handleCodeChange}
@@ -556,16 +556,18 @@ export default function IDEWorkspace() {
                   />
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-slate-400 bg-slate-950">
-                  <div className="text-6xl mb-4 opacity-50">📝</div>
-                  <h3 className="text-lg font-medium text-slate-300 mb-2">No file selected</h3>
-                  <p className="text-sm text-slate-500">Choose a file from the explorer to start editing</p>
+                <div className="flex flex-col items-center justify-center h-full text-github-text-muted bg-github-bg">
+                  <div className="text-6xl mb-6 opacity-60">📝</div>
+                  <h3 className="text-xl font-semibold text-github-text mb-3">No file selected</h3>
+                  <p className="text-github-text-secondary text-center max-w-md">
+                    Choose a file from the explorer to start editing, or create a new file to get started.
+                  </p>
                 </div>
               )}
             </div>
 
             {showDiff && modifications.length > 0 && (
-              <div className="border-t border-slate-800 p-4 max-h-96 overflow-auto">
+              <div className="border-t border-github-border p-6 max-h-96 overflow-auto bg-github-bg-secondary/50">
                 {modifications.map((mod, index) => (
                   <DiffPreview
                     key={index}
@@ -578,14 +580,14 @@ export default function IDEWorkspace() {
             )}
 
             {showTerminal && (
-              <div className="border-t border-slate-800 h-64">
+              <div className="border-t border-github-border h-64 bg-github-bg-secondary">
                 <Terminal />
               </div>
             )}
           </div>
 
           {/* AI Chat */}
-          <div className="w-80 border-l border-slate-800">
+          <div className="w-80 border-l border-github-border bg-github-bg-secondary/30">
             <AIChat onPromptSubmit={handlePromptSubmit} />
           </div>
         </div>

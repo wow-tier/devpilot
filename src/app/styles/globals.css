@@ -9,6 +9,7 @@
 html, body {
   height: 100%;
   width: 100%;
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
 }
 
 /* Custom scrollbar */
@@ -18,20 +19,86 @@ html, body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #0d1117;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  background: #30363d;
+  border-radius: 6px;
+  border: 1px solid #21262d;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #484f58;
+}
+
+::-webkit-scrollbar-corner {
+  background: #0d1117;
 }
 
 /* Selection */
 ::selection {
-  background: #3b82f6;
+  background: #58a6ff;
   color: white;
+}
+
+/* Focus styles */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid #58a6ff;
+  outline-offset: 2px;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Custom utilities */
+.text-balance {
+  text-wrap: balance;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* GitHub-style code blocks */
+pre {
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+}
+
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+}
+
+/* Loading animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
 }

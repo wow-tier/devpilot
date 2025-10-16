@@ -105,7 +105,7 @@ export default function IDEWorkspace() {
             
             // Clone/pull repository
             console.log('🔄 Starting clone for:', repo.url);
-            await cloneRepository(repo.id);
+            cloneRepository(repo.id);
           } else {
             console.error('❌ Failed to fetch repository:', await response.text());
             setShowWelcome(true);

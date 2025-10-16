@@ -499,9 +499,3 @@ export default function IDEWorkspace() {
     </ErrorBoundary>
   );
 }
-    gitBranch={gitBranch}
-        />
-      </div>
-    </ErrorBoundary>
-  );
-}

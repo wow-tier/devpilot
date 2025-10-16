@@ -67,6 +67,48 @@ export default function IDEWorkspace() {
   const activeTab = tabs.find(t => t.id === activeTabId);
   const activeContent = activeTab ? fileContents[activeTab.path] || '' : '';
 
+  // Files state management  
+  const [files, setFiles] = useState<{ name: string; isDirectory: boolean }[]>([]);
+
+  // Load files function - defined early so it can be called from clone
+  const loadFiles = async (directory = '.', customRepoPath?: string) => {
+    try {
+      const pathToUse = customRepoPath || repoPath;
+      
+      console.log('📂 Loading files from directory:', directory);
+      console.log('📁 Using repoPath:', pathToUse || 'NONE - will use default workspace ❌');
+      
+      const queryParams = new URLSearchParams();
+      
+      if (pathToUse) {
+        queryParams.append('repoPath', pathToUse);
+        console.log('✅ RepoPath is SET:', pathToUse);
+      } else {
+        console.error('❌❌❌ RepoPath is EMPTY! Will show workspace files!');
+      }
+      
+      queryParams.append('directory', directory);
+      
+      const url = `/api/files?${queryParams.toString()}`;
+      console.log('🔗 Files API URL:', url);
+      
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('✅ Files loaded:', data.files?.length || 0, 'items');
+        if (data.files && data.files.length > 0) {
+          console.log('📄 First 10 files:', data.files.slice(0, 10).map((f: { name: string }) => f.name).join(', '));
+        }
+        setFiles(data.files || []);
+      } else {
+        console.error('❌ Failed to load files:', data);
+      }
+    } catch (error) {
+      console.error('❌ Error loading files:', error);
+    }
+  };
+
   useEffect(() => {
     // Load repository info from URL params
     const params = new URLSearchParams(window.location.search);

@@ -43,7 +43,6 @@ export default function ImprovedFileExplorer({
 
   useEffect(() => {
     loadFiles('.');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repoPath]);
 
   useEffect(() => {

@@ -1,15 +1,21 @@
-import './styles/globals.css';
-import { ReactNode } from 'react';
+import type { Metadata } from "next";
+import "./styles/globals.css";
 
-export const metadata = {
-  title: 'DevPilot',
-  description: 'AI-powered development assistant',
+export const metadata: Metadata = {
+  title: "AI Code Agent - Intelligent Development Workspace",
+  description: "An AI-powered code development workspace that helps you build and modify code through natural language",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="antialiased">
+        {children}
+      </body>
     </html>
   );
 }

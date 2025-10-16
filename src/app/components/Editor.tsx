@@ -24,21 +24,37 @@ export default function CodeEditor({
   readOnly = false,
   height = '100%',
   theme = 'vs-dark',
+  fontSize = 14,
+  minimap = true,
+  lineNumbers = true,
+  wordWrap = false,
 }: CodeEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+
+  // Map custom theme names to Monaco theme names
+  const getMonacoTheme = (theme: string) => {
+    const themeMap: Record<string, string> = {
+      'dark': 'vs-dark',
+      'light': 'vs',
+      'monokai': 'vs-dark', // Monaco doesn't have monokai built-in, use vs-dark
+      'dracula': 'vs-dark', // Monaco doesn't have dracula built-in, use vs-dark
+    };
+    return themeMap[theme] || 'vs-dark';
+  };
 
   const handleEditorDidMount: OnMount = (editor) => {
     editorRef.current = editor;
     
     // Configure editor options
     editor.updateOptions({
-      minimap: { enabled: true },
-      fontSize: 14,
-      lineNumbers: 'on',
+      minimap: { enabled: minimap },
+      fontSize: fontSize,
+      lineNumbers: lineNumbers ? 'on' : 'off',
       roundedSelection: false,
       scrollBeyondLastLine: false,
       readOnly,
       automaticLayout: true,
+      wordWrap: wordWrap ? 'on' : 'off',
     });
   };
 
@@ -56,10 +72,14 @@ export default function CodeEditor({
         value={value}
         onChange={handleEditorChange}
         onMount={handleEditorDidMount}
-        theme={theme}
+        theme={getMonacoTheme(theme)}
         options={{
           readOnly,
           automaticLayout: true,
+          minimap: { enabled: minimap },
+          fontSize: fontSize,
+          lineNumbers: lineNumbers ? 'on' : 'off',
+          wordWrap: wordWrap ? 'on' : 'off',
         }}
       />
     </div>

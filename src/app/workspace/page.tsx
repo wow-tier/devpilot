@@ -438,26 +438,28 @@ export default function IDEWorkspace() {
         )}
 
         {/* Top Header */}
-        <header className="bg-slate-900 border-b border-slate-800 px-4 py-2.5">
+        <header className="bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                   <Code2 className="w-4 h-4 text-white" />
                 </div>
-                <h1 className="text-sm font-semibold text-white">
-                  {currentRepo?.name || 'AI Code Agent'}
-                </h1>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                <GitBranch className="w-3.5 h-3.5" />
-                <span>{gitBranch}</span>
-              </div>
-              {currentRepo && (
-                <div className="text-xs text-slate-500 truncate max-w-md">
-                  {currentRepo.url}
+                <div>
+                  <h1 className="text-sm font-semibold text-white">
+                    {currentRepo?.name || 'AI Code Agent'}
+                  </h1>
+                  {currentRepo && (
+                    <p className="text-xs text-slate-400 truncate max-w-md">
+                      {currentRepo.url}
+                    </p>
+                  )}
                 </div>
-              )}
+              </div>
+              <div className="flex items-center gap-2 px-2 py-1 bg-slate-800/50 rounded-lg text-xs text-slate-300">
+                <GitBranch className="w-3.5 h-3.5 text-blue-400" />
+                <span className="font-mono">{gitBranch}</span>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -537,23 +539,27 @@ export default function IDEWorkspace() {
               <Breadcrumbs path={activeTab.path} />
             )}
 
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden bg-slate-950">
               {showWelcome ? (
                 <WelcomeScreen onGetStarted={() => setShowWelcome(false)} />
               ) : activeTab ? (
-                <CodeEditor
-                  value={activeContent}
-                  onChange={handleCodeChange}
-                  language={activeTab.language}
-                  theme={settings.theme}
-                  fontSize={settings.fontSize}
-                  minimap={settings.minimap}
-                  lineNumbers={settings.lineNumbers}
-                  wordWrap={settings.wordWrap}
-                />
+                <div className="h-full bg-slate-950">
+                  <CodeEditor
+                    value={activeContent}
+                    onChange={handleCodeChange}
+                    language={activeTab.language}
+                    theme={settings.theme}
+                    fontSize={settings.fontSize}
+                    minimap={settings.minimap}
+                    lineNumbers={settings.lineNumbers}
+                    wordWrap={settings.wordWrap}
+                  />
+                </div>
               ) : (
-                <div className="flex items-center justify-center h-full text-slate-500">
-                  Select a file to start editing
+                <div className="flex flex-col items-center justify-center h-full text-slate-400 bg-slate-950">
+                  <div className="text-6xl mb-4 opacity-50">📝</div>
+                  <h3 className="text-lg font-medium text-slate-300 mb-2">No file selected</h3>
+                  <p className="text-sm text-slate-500">Choose a file from the explorer to start editing</p>
                 </div>
               )}
             </div>

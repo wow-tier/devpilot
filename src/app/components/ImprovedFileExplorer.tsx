@@ -84,6 +84,8 @@ export default function ImprovedFileExplorer({
         newExpandedDirs.delete(file.path);
       } else {
         newExpandedDirs.add(file.path);
+        // Load files for the expanded directory
+        loadFiles(file.path);
       }
       setExpandedDirs(newExpandedDirs);
     } else {
@@ -118,31 +120,34 @@ export default function ImprovedFileExplorer({
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 text-white">
+    <div className="flex flex-col h-full bg-slate-900/50 text-white">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-800 bg-slate-900">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Explorer</h2>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/50 bg-slate-900/80 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-300">Explorer</h2>
+        </div>
         <div className="flex gap-1">
           <button
             onClick={() => onFileCreate?.('new-file.ts', 'file')}
-            className="p-1.5 hover:bg-slate-800 rounded transition-colors"
+            className="p-2 hover:bg-slate-800/50 rounded-lg transition-all duration-150 group"
             title="New File"
           >
-            <FilePlus className="w-4 h-4 text-slate-400" />
+            <FilePlus className="w-4 h-4 text-slate-400 group-hover:text-blue-400" />
           </button>
           <button
             onClick={() => onFileCreate?.('new-folder', 'directory')}
-            className="p-1.5 hover:bg-slate-800 rounded transition-colors"
+            className="p-2 hover:bg-slate-800/50 rounded-lg transition-all duration-150 group"
             title="New Folder"
           >
-            <FolderPlus className="w-4 h-4 text-slate-400" />
+            <FolderPlus className="w-4 h-4 text-slate-400 group-hover:text-green-400" />
           </button>
           <button
             onClick={() => loadFiles('.')}
-            className="p-1.5 hover:bg-slate-800 rounded transition-colors"
+            className="p-2 hover:bg-slate-800/50 rounded-lg transition-all duration-150 group"
             title="Refresh"
           >
-            <RefreshCw className="w-4 h-4 text-slate-400" />
+            <RefreshCw className="w-4 h-4 text-slate-400 group-hover:text-purple-400" />
           </button>
         </div>
       </div>
@@ -150,25 +155,47 @@ export default function ImprovedFileExplorer({
       {/* File List */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="p-4 text-center text-slate-500 text-sm">Loading...</div>
+          <div className="p-4 text-center text-slate-500 text-sm">
+            <div className="animate-spin w-4 h-4 border-2 border-slate-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+            Loading...
+          </div>
+        ) : files.length === 0 ? (
+          <div className="p-4 text-center text-slate-500 text-sm">
+            <div className="text-2xl mb-2">📁</div>
+            No files found
+          </div>
         ) : (
-          <div>
+          <div className="py-1">
             {files.map((file) => (
               <div
                 key={file.path}
                 onClick={() => handleFileClick(file)}
                 onContextMenu={(e) => handleContextMenu(e, file)}
                 className={`
-                  flex items-center gap-2 px-3 py-1.5 cursor-pointer
-                  hover:bg-slate-800/50 transition-colors text-sm
-                  ${selectedFile === file.path ? 'bg-slate-800 border-l-2 border-blue-500' : ''}
+                  flex items-center gap-3 px-4 py-2 cursor-pointer group relative
+                  hover:bg-slate-800/40 transition-all duration-200 text-sm
+                  ${selectedFile === file.path ? 'bg-slate-800/60 border-l-2 border-blue-500 shadow-sm' : ''}
+                  ${file.type === 'directory' ? 'hover:bg-slate-700/20' : 'hover:bg-slate-800/30'}
                 `}
               >
                 {getChevron(file)}
-                {getFileIcon(file)}
-                <span className={`flex-1 truncate ${selectedFile === file.path ? 'text-white font-medium' : 'text-slate-300'}`}>
+                <div className="flex-shrink-0">
+                  {getFileIcon(file)}
+                </div>
+                <span className={`flex-1 truncate transition-colors ${
+                  selectedFile === file.path 
+                    ? 'text-white font-medium' 
+                    : file.type === 'directory' 
+                      ? 'text-slate-200 group-hover:text-white' 
+                      : 'text-slate-300 group-hover:text-slate-100'
+                }`}>
                   {file.name}
                 </span>
+                {file.type === 'directory' && (
+                  <div className="text-xs text-slate-500 group-hover:text-slate-400 transition-colors">
+                    {expandedDirs.has(file.path) ? '📂' : '📁'}
+                  </div>
+                )}
               </div>
             ))}
           </div>

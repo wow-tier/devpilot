@@ -32,7 +32,8 @@ export default function ImprovedFileExplorer({
   onFileCreate,
   onFileDelete,
   onFileRename,
-  selectedFile
+  selectedFile,
+  repoPath
 }: ImprovedFileExplorerProps) {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['.']));

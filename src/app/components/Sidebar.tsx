@@ -15,6 +15,7 @@ interface SidebarProps {
   onFileDelete?: (path: string) => void;
   onFileRename?: (oldPath: string, newPath: string) => void;
   onSearchResult?: (file: string, line: number) => void;
+  repoPath?: string;
 }
 
 export default function Sidebar({

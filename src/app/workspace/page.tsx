@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Code2, GitBranch, Save, FileText, CheckCircle, Settings as SettingsIcon } from 'lucide-react';
+import { Code2, GitBranch, Save, FileText, CheckCircle, Settings as SettingsIcon, Loader2 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import AIChat from '../components/AIChat';
 import WelcomeScreen from '../components/WelcomeScreen';
@@ -29,6 +29,14 @@ interface Modification {
   explanation: string;
 }
 
+interface Repository {
+  id: string;
+  name: string;
+  url: string;
+  defaultBranch: string;
+  description?: string;
+}
+
 export default function IDEWorkspace() {
   // State management
   const [tabs, setTabs] = useState<Tab[]>([]);
@@ -41,6 +49,10 @@ export default function IDEWorkspace() {
   const [showSettings, setShowSettings] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
   const [gitBranch, setGitBranch] = useState<string>('main');
+  const [currentRepo, setCurrentRepo] = useState<Repository | null>(null);
+  const [repoPath, setRepoPath] = useState<string>('');
+  const [isCloning, setIsCloning] = useState(false);
+  const [cloneError, setCloneError] = useState('');
   const [settings, setSettings] = useState<SettingsType>({
     theme: 'dark',
     fontSize: 14,
@@ -56,21 +68,64 @@ export default function IDEWorkspace() {
   const activeContent = activeTab ? fileContents[activeTab.path] || '' : '';
 
   useEffect(() => {
-    // Load repository info from URL params
+    // Load repository info from URL params and localStorage
     const params = new URLSearchParams(window.location.search);
     const repoId = params.get('repo');
     
     if (repoId) {
       const repoData = localStorage.getItem('currentRepo');
       if (repoData) {
-        const repo = JSON.parse(repoData);
-        console.log('Loaded repository:', repo);
-        // You can set this to state if needed
+        const repo: Repository = JSON.parse(repoData);
+        setCurrentRepo(repo);
+        setGitBranch(repo.defaultBranch || 'main');
+        
+        // Clone/pull repository
+        cloneRepository(repo.id);
       }
+    } else {
+      // No repository selected, show welcome
+      setShowWelcome(true);
     }
-    
-    loadGitStatus();
   }, []);
+
+  const cloneRepository = async (repositoryId: string) => {
+    setIsCloning(true);
+    setCloneError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setCloneError('Please login to clone repositories');
+        setIsCloning(false);
+        return;
+      }
+
+      const response = await fetch('/api/repositories/clone', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ repositoryId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setRepoPath(data.path);
+        setShowWelcome(false);
+        loadGitStatus(data.path);
+      } else {
+        setCloneError(data.error || 'Failed to clone repository');
+      }
+    } catch (error) {
+      console.error('Error cloning repository:', error);
+      setCloneError('Failed to clone repository. Please try again.');
+    } finally {
+      setIsCloning(false);
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -92,74 +147,47 @@ export default function IDEWorkspace() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const loadGitStatus = async () => {
+  const loadGitStatus = async (path?: string) => {
     try {
-      const response = await fetch('/api/git?action=status');
+      const targetPath = path || repoPath;
+      const response = await fetch(`/api/git?action=status&repoPath=${encodeURIComponent(targetPath)}`);
       const data = await response.json();
+      
       if (data.success) {
-        setGitBranch(data.status.branch);
+        setGitBranch(data.status.current || 'main');
       }
     } catch (error) {
       console.error('Error loading git status:', error);
     }
   };
 
-  const openFile = async (filePath: string) => {
-    // Check if file is already open
-    const existingTab = tabs.find(t => t.path === filePath);
-    if (existingTab) {
-      setActiveTabId(existingTab.id);
-      return;
-    }
-
-    // Load file content
+  const handleFileSelect = async (filePath: string) => {
     try {
-      const response = await fetch(`/api/files/${encodeURIComponent(filePath)}`);
+      const response = await fetch(`/api/files/${encodeURIComponent(filePath)}?repoPath=${encodeURIComponent(repoPath)}`);
       const data = await response.json();
-      
+
       if (data.success) {
         const newTab: Tab = {
-          id: Date.now().toString(),
+          id: filePath,
           label: filePath.split('/').pop() || filePath,
           path: filePath,
-          language: data.language,
-          isDirty: false,
         };
 
-        setTabs(prev => [...prev, newTab]);
-        setFileContents(prev => ({ ...prev, [filePath]: data.content }));
-        setActiveTabId(newTab.id);
+        if (!tabs.find(t => t.id === filePath)) {
+          setTabs([...tabs, newTab]);
+        }
+
+        setFileContents(prev => ({
+          ...prev,
+          [filePath]: data.content,
+        }));
+
+        setActiveTabId(filePath);
         setShowWelcome(false);
       }
     } catch (error) {
-      console.error('Error opening file:', error);
+      console.error('Error loading file:', error);
     }
-  };
-
-  const closeTab = (tabId: string) => {
-    const tab = tabs.find(t => t.id === tabId);
-    if (!tab) return;
-
-    setTabs(prev => prev.filter(t => t.id !== tabId));
-    
-    if (activeTabId === tabId) {
-      const remainingTabs = tabs.filter(t => t.id !== tabId);
-      if (remainingTabs.length > 0) {
-        setActiveTabId(remainingTabs[remainingTabs.length - 1].id);
-      } else {
-        setActiveTabId('');
-        setShowWelcome(true);
-      }
-    }
-  };
-
-  const handleFileChange = (newContent: string) => {
-    if (!activeTab) return;
-    
-    setFileContents(prev => ({ ...prev, [activeTab.path]: newContent }));
-    setTabs(prev => prev.map(t => 
-      t.id === activeTabId ? { ...t, isDirty: true } : t
-    ));
   };
 
   const handleSaveFile = async () => {
@@ -171,14 +199,15 @@ export default function IDEWorkspace() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           filePath: activeTab.path,
-          content: fileContents[activeTab.path],
+          content: activeContent,
+          repoPath,
         }),
       });
 
-      if (response.ok) {
-        setTabs(prev => prev.map(t => 
-          t.id === activeTabId ? { ...t, isDirty: false } : t
-        ));
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('File saved successfully');
       }
     } catch (error) {
       console.error('Error saving file:', error);
@@ -187,23 +216,17 @@ export default function IDEWorkspace() {
 
   const handlePromptSubmit = async (prompt: string) => {
     try {
-      const filePaths = activeTab ? [activeTab.path] : [];
-
       const response = await fetch('/api/prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, filePaths }),
+        body: JSON.stringify({ prompt, repoPath }),
       });
 
       const data = await response.json();
 
-      if (data.success && data.modifications.length > 0) {
-        setModifications(data.modifications);
+      if (data.success) {
+        setModifications(data.modifications || []);
         setShowDiff(true);
-
-        if (activeTab && data.modifications[0].filePath === activeTab.path) {
-          handleFileChange(data.modifications[0].modifiedContent);
-        }
       }
     } catch (error) {
       console.error('Error processing prompt:', error);
@@ -211,65 +234,107 @@ export default function IDEWorkspace() {
   };
 
   const handleApplyModifications = async () => {
-    if (modifications.length === 0) return;
-
-    try {
-      const response = await fetch('/api/commit', {
+    for (const mod of modifications) {
+      await fetch('/api/files', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: 'AI: Applied modifications based on user request',
-          modifications,
+          filePath: mod.filePath,
+          content: mod.modifiedContent,
+          repoPath,
         }),
       });
 
-      if (response.ok) {
-        setModifications([]);
-        setShowDiff(false);
-        
-        // Reload active file
-        if (activeTab) {
-          const res = await fetch(`/api/files/${encodeURIComponent(activeTab.path)}`);
-          const data = await res.json();
-          if (data.success) {
-            setFileContents(prev => ({ ...prev, [activeTab.path]: data.content }));
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error applying modifications:', error);
+      setFileContents(prev => ({
+        ...prev,
+        [mod.filePath]: mod.modifiedContent,
+      }));
+    }
+
+    setModifications([]);
+    setShowDiff(false);
+  };
+
+  const handleTabClose = (tabId: string) => {
+    const newTabs = tabs.filter(t => t.id !== tabId);
+    setTabs(newTabs);
+    
+    if (activeTabId === tabId) {
+      setActiveTabId(newTabs[newTabs.length - 1]?.id || '');
     }
   };
 
-  const commands = [
-    { id: 'save', label: 'Save File', action: handleSaveFile, shortcut: 'Cmd+S', icon: '💾' },
-    { id: 'settings', label: 'Open Settings', action: () => setShowSettings(true), shortcut: 'Cmd+,', icon: '⚙️' },
-    { id: 'terminal', label: 'Toggle Terminal', action: () => setShowTerminal(prev => !prev), shortcut: 'Cmd+`', icon: '🖥️' },
-    { id: 'diff', label: 'Toggle Diff', action: () => setShowDiff(prev => !prev), shortcut: 'Cmd+D', icon: '🔍' },
-  ];
+  const handleCodeChange = (value: string | undefined) => {
+    if (activeTab && value !== undefined) {
+      setFileContents(prev => ({
+        ...prev,
+        [activeTab.path]: value,
+      }));
+    }
+  };
+
+  if (isCloning) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-950">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">
+            Cloning Repository...
+          </h2>
+          <p className="text-slate-400">
+            {currentRepo?.name} from {currentRepo?.url}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (cloneError) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-950">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">⚠️</span>
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-2">
+            Failed to Clone Repository
+          </h2>
+          <p className="text-red-400 mb-4">{cloneError}</p>
+          <button
+            onClick={() => window.location.href = '/dashboard'}
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
-      <KeyboardShortcuts
-        onSave={handleSaveFile}
-        onToggleDiff={() => setShowDiff(!showDiff)}
-        onFocusChat={() => (document.querySelector('input[type="text"]') as HTMLInputElement)?.focus()}
-      />
+      <div className="flex flex-col h-screen bg-slate-950">
+        <KeyboardShortcuts
+          onSave={handleSaveFile}
+          onToggleDiff={() => setShowDiff(!showDiff)}
+          onFocusChat={() => {}}
+        />
 
-      <CommandPalette
-        isOpen={showCommandPalette}
-        onClose={() => setShowCommandPalette(false)}
-        commands={commands}
-      />
+        {showCommandPalette && (
+          <CommandPalette
+            onClose={() => setShowCommandPalette(false)}
+          />
+        )}
 
-      <SettingsPanel
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        settings={settings}
-        onSettingsChange={setSettings}
-      />
+        {showSettings && (
+          <SettingsPanel
+            isOpen={showSettings}
+            onClose={() => setShowSettings(false)}
+            settings={settings}
+            onSettingsChange={setSettings}
+          />
+        )}
 
-      <div className="flex flex-col h-screen bg-gray-950">
         {/* Top Header */}
         <header className="bg-slate-900 border-b border-slate-800 px-4 py-2.5">
           <div className="flex items-center justify-between">
@@ -278,12 +343,19 @@ export default function IDEWorkspace() {
                 <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                   <Code2 className="w-4 h-4 text-white" />
                 </div>
-                <h1 className="text-sm font-semibold text-white">AI Code Agent</h1>
+                <h1 className="text-sm font-semibold text-white">
+                  {currentRepo?.name || 'AI Code Agent'}
+                </h1>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-slate-400">
                 <GitBranch className="w-3.5 h-3.5" />
                 <span>{gitBranch}</span>
               </div>
+              {currentRepo && (
+                <div className="text-xs text-slate-500 truncate max-w-md">
+                  {currentRepo.url}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -336,73 +408,90 @@ export default function IDEWorkspace() {
 
         {/* Main Content */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Left Sidebar */}
-          <div className="w-64 border-r border-gray-800">
+          {/* Sidebar */}
+          <div className="w-64 border-r border-slate-800">
             <Sidebar
-              onFileSelect={openFile}
+              onFileSelect={handleFileSelect}
               selectedFile={activeTab?.path}
+              onFileCreate={() => {}}
+              onFileDelete={() => {}}
+              onFileRename={() => {}}
             />
           </div>
 
-          {/* Center - Editor */}
+          {/* Editor Area */}
           <div className="flex-1 flex flex-col">
             {tabs.length > 0 && (
               <TabBar
                 tabs={tabs}
                 activeTab={activeTabId}
                 onTabClick={setActiveTabId}
-                onTabClose={closeTab}
+                onTabClose={handleTabClose}
               />
             )}
 
-            {activeTab && <Breadcrumbs path={activeTab.path} />}
+            {activeTab && (
+              <Breadcrumbs path={activeTab.path} />
+            )}
 
-            <div className="flex-1 relative">
-              {showWelcome && tabs.length === 0 ? (
+            <div className="flex-1 overflow-hidden">
+              {showWelcome ? (
                 <WelcomeScreen onGetStarted={() => setShowWelcome(false)} />
               ) : activeTab ? (
                 <CodeEditor
                   value={activeContent}
-                  onChange={handleFileChange}
+                  onChange={handleCodeChange}
                   language={activeTab.language}
-                  height="100%"
-                  theme={settings.theme === 'light' ? 'vs-light' : 'vs-dark'}
+                  theme={settings.theme}
+                  fontSize={settings.fontSize}
+                  minimap={settings.minimap}
+                  lineNumbers={settings.lineNumbers}
+                  wordWrap={settings.wordWrap}
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  <p>Select a file to start editing</p>
-                </div>
-              )}
-
-              {showDiff && modifications.length > 0 && (
-                <div className="absolute bottom-0 left-0 right-0 h-1/2 border-t border-gray-700 bg-gray-900 overflow-y-auto">
-                  {modifications.map((mod, index) => (
-                    <DiffPreview
-                      key={index}
-                      original={mod.originalContent}
-                      modified={mod.modifiedContent}
-                      fileName={mod.filePath}
-                    />
-                  ))}
+                <div className="flex items-center justify-center h-full text-slate-500">
+                  Select a file to start editing
                 </div>
               )}
             </div>
 
+            {showDiff && modifications.length > 0 && (
+              <div className="border-t border-slate-800 p-4 max-h-96 overflow-auto">
+                {modifications.map((mod, index) => (
+                  <DiffPreview
+                    key={index}
+                    original={mod.originalContent}
+                    modified={mod.modifiedContent}
+                    fileName={mod.filePath}
+                  />
+                ))}
+              </div>
+            )}
+
             {showTerminal && (
-              <div className="h-64 border-t border-gray-800">
+              <div className="border-t border-slate-800 h-64">
                 <Terminal />
               </div>
             )}
           </div>
 
-          {/* Right Sidebar - AI Chat */}
-          <div className="w-96 border-l border-gray-800">
+          {/* AI Chat */}
+          <div className="w-80 border-l border-slate-800">
             <AIChat onPromptSubmit={handlePromptSubmit} />
           </div>
         </div>
 
         {/* Status Bar */}
-        <StatusBar currentFile={activeTab?.path} gitBranch={gitBranch} />
+        <StatusBar
+          currentFile={activeTab?.path}
+          gitBranch={gitBranch}
+        />
+      </div>
+    </ErrorBoundary>
+  );
+}
+    gitBranch={gitBranch}
+        />
       </div>
     </ErrorBoundary>
   );

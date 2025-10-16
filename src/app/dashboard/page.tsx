@@ -5,24 +5,33 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Code2, Plus, Settings, LogOut, FolderGit2, 
-  GitBranch, ExternalLink, Trash2, Book, Users, MessageSquare 
+  GitBranch, ExternalLink, Trash2, Book, Users, MessageSquare, Loader2
 } from 'lucide-react';
 
 interface Repository {
   id: string;
   name: string;
   url: string;
-  branch: string;
-  lastAccessed?: Date;
+  defaultBranch: string;
+  lastAccessedAt?: Date;
   description?: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  name?: string;
+  token?: string;
 }
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ id: string; email: string; name?: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [showAddRepo, setShowAddRepo] = useState(false);
-  const [newRepo, setNewRepo] = useState({ name: '', url: '', branch: 'main' });
+  const [newRepo, setNewRepo] = useState({ name: '', url: '', branch: 'main', description: '' });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -30,34 +39,141 @@ export default function DashboardPage() {
       router.push('/login');
       return;
     }
-    setUser(JSON.parse(userData));
-
-    const savedRepos = localStorage.getItem('repositories');
-    if (savedRepos) {
-      setRepositories(JSON.parse(savedRepos));
-    }
+    
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    
+    // Load repositories from database
+    loadRepositories(parsedUser);
   }, [router]);
 
-  const handleAddRepository = () => {
-    if (!newRepo.name || !newRepo.url) return;
+  const loadRepositories = async (userData: User) => {
+    try {
+      const token = userData.token || localStorage.getItem('token');
+      
+      if (!token) {
+        console.error('No token found');
+        return;
+      }
 
-    const repo: Repository = {
-      id: Date.now().toString(),
-      ...newRepo,
-      lastAccessed: new Date(),
-    };
+      const response = await fetch('/api/repositories', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-    const updatedRepos = [...repositories, repo];
-    setRepositories(updatedRepos);
-    localStorage.setItem('repositories', JSON.stringify(updatedRepos));
-    setNewRepo({ name: '', url: '', branch: 'main' });
-    setShowAddRepo(false);
+      if (response.ok) {
+        const data = await response.json();
+        setRepositories(data.repositories || []);
+      } else {
+        console.error('Failed to load repositories:', response.statusText);
+        // Fallback to localStorage if API fails
+        const savedRepos = localStorage.getItem('repositories');
+        if (savedRepos) {
+          setRepositories(JSON.parse(savedRepos));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading repositories:', error);
+      // Fallback to localStorage
+      const savedRepos = localStorage.getItem('repositories');
+      if (savedRepos) {
+        setRepositories(JSON.parse(savedRepos));
+      }
+    }
   };
 
-  const handleDeleteRepo = (id: string) => {
-    const updatedRepos = repositories.filter(r => r.id !== id);
-    setRepositories(updatedRepos);
-    localStorage.setItem('repositories', JSON.stringify(updatedRepos));
+  const handleAddRepository = async () => {
+    if (!newRepo.name || !newRepo.url) {
+      setError('Please fill in repository name and URL');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const token = user?.token || localStorage.getItem('token');
+      
+      if (!token) {
+        // Fallback to localStorage if no token
+        const repo: Repository = {
+          id: Date.now().toString(),
+          name: newRepo.name,
+          url: newRepo.url,
+          defaultBranch: newRepo.branch || 'main',
+          description: newRepo.description,
+          lastAccessedAt: new Date(),
+        };
+
+        const updatedRepos = [...repositories, repo];
+        setRepositories(updatedRepos);
+        localStorage.setItem('repositories', JSON.stringify(updatedRepos));
+        setNewRepo({ name: '', url: '', branch: 'main', description: '' });
+        setShowAddRepo(false);
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch('/api/repositories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: newRepo.name,
+          url: newRepo.url,
+          branch: newRepo.branch || 'main',
+          description: newRepo.description,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const updatedRepos = [...repositories, data.repository];
+        setRepositories(updatedRepos);
+        
+        // Also save to localStorage as backup
+        localStorage.setItem('repositories', JSON.stringify(updatedRepos));
+        
+        setNewRepo({ name: '', url: '', branch: 'main', description: '' });
+        setShowAddRepo(false);
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Failed to add repository');
+      }
+    } catch (error) {
+      console.error('Error adding repository:', error);
+      setError('Failed to add repository. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteRepo = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this repository?')) {
+      return;
+    }
+
+    try {
+      const token = user?.token || localStorage.getItem('token');
+      
+      if (token) {
+        await fetch(`/api/repositories/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+      }
+
+      const updatedRepos = repositories.filter(r => r.id !== id);
+      setRepositories(updatedRepos);
+      localStorage.setItem('repositories', JSON.stringify(updatedRepos));
+    } catch (error) {
+      console.error('Error deleting repository:', error);
+    }
   };
 
   const handleOpenWorkspace = (repo: Repository) => {
@@ -67,6 +183,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     router.push('/');
   };
 
@@ -133,12 +250,18 @@ export default function DashboardPage() {
         {showAddRepo && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-scale-in">
-              <h3 className="text-xl font-bold text-white mb-6">Add Repository</h3>
+              <h3 className="text-xl font-bold text-white mb-6">Add GitHub Repository</h3>
               
+              {error && (
+                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Repository Name
+                    Repository Name *
                   </label>
                   <input
                     type="text"
@@ -146,25 +269,30 @@ export default function DashboardPage() {
                     onChange={(e) => setNewRepo({ ...newRepo, name: e.target.value })}
                     className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                     placeholder="my-awesome-project"
+                    disabled={isLoading}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Git URL
+                    Git Repository URL *
                   </label>
                   <input
                     type="text"
                     value={newRepo.url}
                     onChange={(e) => setNewRepo({ ...newRepo, url: e.target.value })}
                     className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                    placeholder="https://github.com/user/repo.git"
+                    placeholder="https://github.com/username/repo.git"
+                    disabled={isLoading}
                   />
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    Enter the full GitHub repository URL
+                  </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Branch
+                    Default Branch
                   </label>
                   <input
                     type="text"
@@ -172,22 +300,50 @@ export default function DashboardPage() {
                     onChange={(e) => setNewRepo({ ...newRepo, branch: e.target.value })}
                     className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                     placeholder="main"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Description (optional)
+                  </label>
+                  <textarea
+                    value={newRepo.description}
+                    onChange={(e) => setNewRepo({ ...newRepo, description: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
+                    placeholder="A brief description of your project"
+                    rows={3}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
 
               <div className="flex gap-3 mt-6">
                 <button
-                  onClick={() => setShowAddRepo(false)}
+                  onClick={() => {
+                    setShowAddRepo(false);
+                    setError('');
+                    setNewRepo({ name: '', url: '', branch: 'main', description: '' });
+                  }}
                   className="flex-1 px-4 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all font-medium"
+                  disabled={isLoading}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleAddRepository}
-                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-medium shadow-lg hover:shadow-glow"
+                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-medium shadow-lg hover:shadow-glow flex items-center justify-center gap-2"
+                  disabled={isLoading}
                 >
-                  Add Repository
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    'Add Repository'
+                  )}
                 </button>
               </div>
             </div>
@@ -200,7 +356,7 @@ export default function DashboardPage() {
             <FolderGit2 className="w-16 h-16 text-slate-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No repositories yet</h3>
             <p className="text-slate-400 mb-6 max-w-md mx-auto">
-              Add your first repository to start coding with AI assistance
+              Add your first GitHub repository to start coding with AI assistance
             </p>
             <button
               onClick={() => setShowAddRepo(true)}
@@ -238,13 +394,17 @@ export default function DashboardPage() {
                 <div className="space-y-2 text-sm mb-4">
                   <div className="flex items-center gap-2 text-slate-400">
                     <GitBranch className="w-4 h-4" />
-                    <span className="truncate">{repo.branch}</span>
+                    <span className="truncate">{repo.defaultBranch || 'main'}</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400">
                     <ExternalLink className="w-4 h-4" />
                     <span className="truncate">{repo.url}</span>
                   </div>
                 </div>
+
+                {repo.description && (
+                  <p className="text-sm text-slate-500 mb-4 line-clamp-2">{repo.description}</p>
+                )}
 
                 <button className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-medium flex items-center justify-center gap-2">
                   Open Workspace

@@ -13,7 +13,7 @@ import TabBar, { Tab } from '../components/TabBar';
 import CommandPalette from '../components/CommandPalette';
 import Terminal from '../components/Terminal';
 import SettingsPanel from '../components/SettingsPanel';
-import type { Settings } from '../components/SettingsPanel';
+import type { Settings as SettingsType } from '../components/SettingsPanel';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DiffPreview from '../components/DiffPreview';
 

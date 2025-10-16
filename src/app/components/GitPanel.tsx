@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { GitBranch, GitCommit, Clock, CheckCircle } from 'lucide-react';
+import { GitBranch, GitCommit, CheckCircle } from 'lucide-react';
 
 interface GitStatus {
   branch: string;

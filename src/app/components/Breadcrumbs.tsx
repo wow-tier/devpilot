@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { ChevronRight, Home } from 'lucide-react';
 
 interface BreadcrumbsProps {
   path: string;
@@ -13,12 +14,13 @@ export default function Breadcrumbs({ path, onNavigate }: BreadcrumbsProps) {
   const parts = path.split('/').filter(Boolean);
   
   return (
-    <div className="flex items-center gap-2 px-4 py-2 bg-gray-900 border-b border-gray-800 text-sm">
+    <div className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 border-b border-slate-800 text-xs">
       <button
         onClick={() => onNavigate?.('.')}
-        className="text-gray-400 hover:text-white"
+        className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-slate-800"
       >
-        📁 Root
+        <Home className="w-3.5 h-3.5" />
+        <span>Root</span>
       </button>
       
       {parts.map((part, index) => {
@@ -27,10 +29,14 @@ export default function Breadcrumbs({ path, onNavigate }: BreadcrumbsProps) {
         
         return (
           <React.Fragment key={index}>
-            <span className="text-gray-600">/</span>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
             <button
               onClick={() => !isLast && onNavigate?.(partPath)}
-              className={isLast ? 'text-white font-medium' : 'text-gray-400 hover:text-white'}
+              className={`px-2 py-1 rounded transition-colors ${
+                isLast 
+                  ? 'text-white font-medium' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
             >
               {part}
             </button>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { diffLines } from 'diff';
+import { FileText, Plus, Minus } from 'lucide-react';
 
 interface DiffPreviewProps {
   original: string;
@@ -13,35 +14,40 @@ export default function DiffPreview({ original, modified, fileName }: DiffPrevie
   const diff = diffLines(original, modified);
 
   return (
-    <div className="bg-gray-900 text-white p-4 rounded-lg">
+    <div className="bg-slate-900 text-white p-4 rounded-lg border border-slate-800">
       {fileName && (
-        <div className="mb-4 pb-2 border-b border-gray-700">
-          <h3 className="text-lg font-semibold">📝 {fileName}</h3>
+        <div className="mb-4 pb-3 border-b border-slate-800 flex items-center gap-2">
+          <FileText className="w-4 h-4 text-blue-400" />
+          <h3 className="text-sm font-semibold text-white">{fileName}</h3>
         </div>
       )}
       
-      <div className="font-mono text-sm overflow-x-auto">
+      <div className="font-mono text-xs overflow-x-auto">
         {diff.map((part, index) => {
           const bgColor = part.added
-            ? 'bg-green-900/30'
+            ? 'bg-green-500/10'
             : part.removed
-            ? 'bg-red-900/30'
+            ? 'bg-red-500/10'
             : 'bg-transparent';
           
           const textColor = part.added
-            ? 'text-green-300'
+            ? 'text-green-400'
             : part.removed
-            ? 'text-red-300'
-            : 'text-gray-300';
+            ? 'text-red-400'
+            : 'text-slate-300';
           
-          const prefix = part.added ? '+ ' : part.removed ? '- ' : '  ';
+          const icon = part.added
+            ? <Plus className="w-3 h-3 inline mr-1" />
+            : part.removed
+            ? <Minus className="w-3 h-3 inline mr-1" />
+            : null;
 
           return (
-            <div key={index} className={`${bgColor} ${textColor}`}>
+            <div key={index} className={`${bgColor} ${textColor} border-l-2 ${part.added ? 'border-green-500' : part.removed ? 'border-red-500' : 'border-transparent'}`}>
               {part.value.split('\n').map((line, lineIndex) => (
                 line.length > 0 && (
-                  <div key={lineIndex} className="px-2 py-0.5">
-                    <span className="select-none opacity-50">{prefix}</span>
+                  <div key={lineIndex} className="px-3 py-0.5 hover:bg-slate-800/30">
+                    {icon}
                     {line}
                   </div>
                 )

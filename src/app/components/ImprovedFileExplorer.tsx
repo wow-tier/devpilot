@@ -25,6 +25,7 @@ interface ImprovedFileExplorerProps {
   onFileDelete?: (path: string) => void;
   onFileRename?: (oldPath: string, newPath: string) => void;
   selectedFile?: string;
+  repoPath?: string;
 }
 
 export default function ImprovedFileExplorer({

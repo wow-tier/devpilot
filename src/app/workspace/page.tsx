@@ -518,6 +518,7 @@ export default function IDEWorkspace() {
               onFileCreate={() => {}}
               onFileDelete={() => {}}
               onFileRename={() => {}}
+              repoPath={repoPath}
             />
           </div>
 

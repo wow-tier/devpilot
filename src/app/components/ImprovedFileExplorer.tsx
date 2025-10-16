@@ -54,7 +54,17 @@ export default function ImprovedFileExplorer({
   const loadFiles = async (path: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/files?directory=${encodeURIComponent(path)}`);
+      const queryParams = new URLSearchParams();
+      queryParams.append('directory', path);
+      
+      if (repoPath) {
+        queryParams.append('repoPath', repoPath);
+        console.log('📁 ImprovedFileExplorer using repoPath:', repoPath);
+      } else {
+        console.warn('⚠️ ImprovedFileExplorer: No repoPath provided, will show workspace files');
+      }
+      
+      const response = await fetch(`/api/files?${queryParams.toString()}`);
       const data = await response.json();
       if (data.success) {
         setFiles(data.files);

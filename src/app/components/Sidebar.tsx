@@ -24,7 +24,8 @@ export default function Sidebar({
   onFileCreate,
   onFileDelete,
   onFileRename,
-  onSearchResult
+  onSearchResult,
+  repoPath
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('files');
 
@@ -78,6 +79,7 @@ export default function Sidebar({
             onFileCreate={onFileCreate}
             onFileDelete={onFileDelete}
             onFileRename={onFileRename}
+            repoPath={repoPath}
           />
         )}
         {activeTab === 'search' && (

@@ -35,8 +35,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: unknown) {
     console.error('Error in commit API:', error);
+    const message = error instanceof Error ? error.message : 'Failed to commit changes';
     return NextResponse.json(
-      { error: error.message || 'Failed to commit changes' },
+      { error: message },
       { status: 500 }
     );
   }

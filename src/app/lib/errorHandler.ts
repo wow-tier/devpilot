@@ -4,7 +4,7 @@ import { ValidationError } from './validation';
 export interface ErrorResponse {
   error: string;
   code?: string;
-  details?: any;
+  details?: unknown;
 }
 
 export class AppError extends Error {

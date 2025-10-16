@@ -96,7 +96,12 @@ export class GitManager {
 
   async getLog(count: number = 10): Promise<{ hash: string; date: string; message: string; author_name: string }[]> {
     const log = await this.git.log({ maxCount: count });
-    return log.all;
+    return log.all.map(entry => ({
+      hash: entry.hash,
+      date: entry.date,
+      message: entry.message,
+      author_name: entry.author_name
+    }));
   }
 
   async getBranches(): Promise<string[]> {

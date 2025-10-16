@@ -4,11 +4,12 @@ import { fileSystem } from '@/app/lib/fileSystem';
 // GET - Read a specific file
 export async function GET(
   req: NextRequest,
-  { params }: { params: { filePath: string } }
+  { params }: { params: Promise<{ filePath: string }> }
 ) {
   try {
-    const filePath = decodeURIComponent(params.filePath);
-    const fileContent = await fileSystem.readFile(filePath);
+    const { filePath } = await params;
+    const decodedPath = decodeURIComponent(filePath);
+    const fileContent = await fileSystem.readFile(decodedPath);
     
     return NextResponse.json({ 
       success: true, 

@@ -94,5 +94,4 @@ export default function PlansTable({ plans, onDelete }: PlansTableProps) {
       ))}
     </div>
   );
-};
 }

@@ -9,25 +9,27 @@ interface User {
   isAdmin: boolean;
 }
 
-// Replace with your actual API endpoints
+// Replace with your actual API endpoints.  These do not exist in the provided documentation, you will have to create them
 const API_URL = 'YOUR_API_URL';
+const USERS_API_ENDPOINT = `${API_URL}/users`; // Example: /api/users
 
 async function getUsers(): Promise<User[]> {
   try {
-    const response = await fetch(`${API_URL}/users`);
+    const response = await fetch(USERS_API_ENDPOINT);
     if (!response.ok) {
       throw new Error('Failed to fetch users');
     }
     return response.json();
   } catch (error) {
     console.error('Error fetching users:', error);
-    return []; // Or re-throw the error, or return a default value
+    // TODO: Handle the error appropriately (e.g., show an error message)
+    return [];
   }
 }
 
 async function addUser(user: { name: string; email: string; isAdmin: boolean }): Promise<User | null> {
   try {
-    const response = await fetch(`${API_URL}/users`, {
+    const response = await fetch(USERS_API_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -40,13 +42,14 @@ async function addUser(user: { name: string; email: string; isAdmin: boolean }):
     return response.json();
   } catch (error) {
     console.error('Error adding user:', error);
+    // TODO: Handle the error appropriately
     return null;
   }
 }
 
 async function updateUser(user: User): Promise<User | null> {
   try {
-    const response = await fetch(`${API_URL}/users/${user.id}`, {
+    const response = await fetch(`${USERS_API_ENDPOINT}/${user.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -59,13 +62,14 @@ async function updateUser(user: User): Promise<User | null> {
     return response.json();
   } catch (error) {
     console.error('Error updating user:', error);
+    // TODO: Handle the error appropriately
     return null;
   }
 }
 
 async function deleteUser(id: number): Promise<void> {
   try {
-    const response = await fetch(`${API_URL}/users/${id}`, {
+    const response = await fetch(`${USERS_API_ENDPOINT}/${id}`, {
       method: 'DELETE',
     });
     if (!response.ok) {
@@ -73,6 +77,7 @@ async function deleteUser(id: number): Promise<void> {
     }
   } catch (error) {
     console.error('Error deleting user:', error);
+    // TODO: Handle the error appropriately
   }
 }
 

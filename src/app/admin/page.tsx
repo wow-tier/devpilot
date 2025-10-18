@@ -101,8 +101,8 @@ export default function AdminPage() {
     }
 
     try {
-      // Load stats, users, plans, API keys, and system keys in parallel
-      const [statsRes, usersRes, plansRes, keysRes, systemKeysRes] = await Promise.all([
+      // Load stats, users, plans, and system keys in parallel
+      const [statsRes, usersRes, plansRes, systemKeysRes] = await Promise.all([
         fetch('/api/admin/stats', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
@@ -110,9 +110,6 @@ export default function AdminPage() {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('/api/admin/plans', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch('/api/admin/apikeys', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('/api/admin/system-keys', {
@@ -133,10 +130,6 @@ export default function AdminPage() {
       if (plansRes.ok) {
         const data = await plansRes.json();
         setPlans(data.plans);
-      }
-
-      if (keysRes.ok) {
-        const data = await keysRes.json();
       }
 
       if (systemKeysRes.ok) {

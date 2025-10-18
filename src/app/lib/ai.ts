@@ -1,4 +1,10 @@
+// src/app/lib/ai.ts
 import OpenAI from 'openai';
+import { CodeModification, AgentResponse, ChatMessage } from '../types';
+import { fileSystem } from './fileSystem';
+import { gitManager } from './git';
+
+console.log('Using OpenAI model:', process.env.OPENAI_MODEL);
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
@@ -8,25 +14,6 @@ export interface AgentContext {
   files: Record<string, string>;
   currentFile?: string;
   chatHistory: ChatMessage[];
-}
-
-export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
-
-export interface CodeModification {
-  filePath: string;
-  originalContent: string;
-  modifiedContent: string;
-  explanation: string;
-}
-
-export interface AgentResponse {
-  message: string;
-  modifications: CodeModification[];
-  suggestedCommitMessage?: string;
-  error?: string;
 }
 
 export class AIAgent {
@@ -39,6 +26,7 @@ export class AIAgent {
     };
   }
 
+  /** Main entry: process user prompt, get AI response, apply changes, commit & push */
   async processPrompt(
     userPrompt: string,
     files: Record<string, string> = {}
@@ -46,36 +34,74 @@ export class AIAgent {
     try {
       // Add user message to history
       this.context.chatHistory.push({
+        id: Date.now().toString(),
         role: 'user',
         content: userPrompt,
+        timestamp: new Date(),
       });
 
-      // Build context for AI
+      // Build system prompt
       const systemPrompt = this.buildSystemPrompt(files);
       const messages: ChatMessage[] = [
-        { role: 'system', content: systemPrompt },
-        ...this.context.chatHistory.slice(-10), // Keep last 10 messages for context
+        { id: 'system', role: 'assistant', content: systemPrompt, timestamp: new Date() },
+        ...this.context.chatHistory.slice(-10), // last 10 messages
       ];
 
-      // Call OpenAI API
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
-        messages: messages as OpenAI.Chat.ChatCompletionMessageParam[],
-        temperature: 0.7,
-        max_tokens: 4000,
-      });
+      const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
+      let aiResponse = '';
 
-      const aiResponse = response.choices[0]?.message?.content || '';
-      
+      if (model.startsWith('gpt-5')) {
+        // Responses API
+        const response = await openai.responses.create({
+          model,
+          input: [
+            {
+              role: 'user',
+              content: userPrompt,
+            },
+          ],
+        });
+        aiResponse = response.output_text || '';
+      } else {
+        // Chat API
+        const response = await openai.chat.completions.create({
+          model,
+          messages: messages.map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'assistant',
+            content: msg.content,
+          })) as OpenAI.Chat.ChatCompletionMessageParam[],
+          temperature: 0.7,
+          max_tokens: 4000,
+        });
+        aiResponse = response.choices[0]?.message?.content || '';
+      }
+
       // Add AI response to history
       this.context.chatHistory.push({
+        id: Date.now().toString(),
         role: 'assistant',
         content: aiResponse,
+        timestamp: new Date(),
       });
 
-      // Parse AI response to extract modifications
+      // Parse modifications and commit message
       const modifications = this.parseModifications(aiResponse, files);
       const suggestedCommitMessage = this.extractCommitMessage(aiResponse);
+
+      // Apply modifications step by step
+      for (const mod of modifications) {
+        await this.applyModification(mod);
+      }
+
+      // Commit changes if there are modifications
+      if (modifications.length > 0 && suggestedCommitMessage) {
+        await gitManager.commit(suggestedCommitMessage);
+      }
+
+      // Push changes automatically
+      if (modifications.length > 0) {
+        await gitManager.push();
+      }
 
       return {
         message: aiResponse,
@@ -90,6 +116,17 @@ export class AIAgent {
         modifications: [],
         error: errorMessage,
       };
+    }
+  }
+
+  /** Apply a single file modification */
+  private async applyModification(mod: CodeModification) {
+    try {
+      await fileSystem.writeFile(mod.filePath, mod.modifiedContent);
+      console.log(`Applied modification: ${mod.filePath}`);
+    } catch (error) {
+      console.error(`Failed to apply modification for ${mod.filePath}:`, error);
+      throw error;
     }
   }
 
@@ -129,7 +166,7 @@ Be concise, accurate, and ensure all code is production-ready.`;
   ): CodeModification[] {
     const modifications: CodeModification[] = [];
     const fileModRegex = /FILE_MODIFICATION:\s*(.+?)\n```(?:\w+)?\n([\s\S]+?)\n```/g;
-    
+
     let match;
     while ((match = fileModRegex.exec(aiResponse)) !== null) {
       const filePath = match[1].trim();

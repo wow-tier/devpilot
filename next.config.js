@@ -1,4 +1,7 @@
 /** @type {import('next').NextConfig} */
+
+require('dotenv').config();
+
 const nextConfig = {
   webpack: (config) => {
     // Exclude user-repos directory from webpack compilation

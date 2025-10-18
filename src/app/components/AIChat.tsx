@@ -12,9 +12,10 @@ interface Message {
 
 interface AIChatProps {
   onPromptSubmit?: (prompt: string) => Promise<void>;
+  selectedProvider?: string;
 }
 
-export default function AIChat({ onPromptSubmit }: AIChatProps) {
+export default function AIChat({ onPromptSubmit, selectedProvider = 'openai' }: AIChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -66,9 +67,11 @@ export default function AIChat({ onPromptSubmit }: AIChatProps) {
       <div className="px-4 py-3 border-b border-slate-800 bg-slate-900">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-blue-400" />
-          <div>
+          <div className="flex-1">
             <h2 className="text-sm font-semibold text-white">AI Assistant</h2>
-            <p className="text-xs text-slate-400">Ask me to modify your code</p>
+            <p className="text-xs text-slate-400">
+              Using {selectedProvider === 'openai' ? 'OpenAI' : selectedProvider === 'claude' ? 'Claude' : 'Grok'}
+            </p>
           </div>
         </div>
       </div>

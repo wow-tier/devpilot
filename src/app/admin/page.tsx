@@ -11,6 +11,7 @@ import { GlassPanel, AccentButton, SectionHeader } from '../components/ui';
 import UsersTable from './components/UsersTable';
 import PlansTable from './components/PlansTable';
 import ApiKeysTable from './components/ApiKeysTable';
+import SystemApiKeysTable from './components/SystemApiKeysTable';
 
 // ----------------- TYPES -----------------
 interface User {
@@ -54,6 +55,16 @@ interface ApiKey {
   };
 }
 
+interface SystemApiKey {
+  id: string;
+  provider: string;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+  lastUsed: string | null;
+  hasKey: boolean;
+}
+
 interface Stats {
   totalUsers: number;
   totalRepositories: number;
@@ -66,11 +77,12 @@ interface Stats {
 export default function AdminPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'plans' | 'apikeys'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'plans' | 'apikeys' | 'system'>('overview');
   
   const [users, setUsers] = useState<User[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [systemKeys, setSystemKeys] = useState<SystemApiKey[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   
   const [error, setError] = useState('');
@@ -89,8 +101,8 @@ export default function AdminPage() {
     }
 
     try {
-      // Load stats, users, plans, and API keys in parallel
-      const [statsRes, usersRes, plansRes, keysRes] = await Promise.all([
+      // Load stats, users, plans, API keys, and system keys in parallel
+      const [statsRes, usersRes, plansRes, keysRes, systemKeysRes] = await Promise.all([
         fetch('/api/admin/stats', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
@@ -101,6 +113,9 @@ export default function AdminPage() {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('/api/admin/apikeys', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('/api/admin/system-keys', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -123,6 +138,11 @@ export default function AdminPage() {
       if (keysRes.ok) {
         const data = await keysRes.json();
         setApiKeys(data.apiKeys);
+      }
+
+      if (systemKeysRes.ok) {
+        const data = await systemKeysRes.json();
+        setSystemKeys(data.keys);
       }
 
       if (!statsRes.ok || !usersRes.ok) {
@@ -222,7 +242,8 @@ export default function AdminPage() {
     { id: 'overview' as const, label: 'Overview', icon: Activity },
     { id: 'users' as const, label: 'Users', icon: Users },
     { id: 'plans' as const, label: 'Plans', icon: CreditCard },
-    { id: 'apikeys' as const, label: 'API Keys', icon: Key },
+    { id: 'apikeys' as const, label: 'User Keys', icon: Key },
+    { id: 'system' as const, label: 'System AI Keys', icon: Settings },
   ];
 
   return (
@@ -375,10 +396,21 @@ export default function AdminPage() {
         {activeTab === 'apikeys' && (
           <div className="space-y-6">
             <SectionHeader
-              title="API Keys"
-              subtitle={`${apiKeys.length} keys in use`}
+              title="User API Keys"
+              subtitle={`${apiKeys.length} user-owned keys`}
             />
             <ApiKeysTable apiKeys={apiKeys} onDelete={handleDeleteApiKey} />
+          </div>
+        )}
+
+        {/* System AI Keys Tab */}
+        {activeTab === 'system' && (
+          <div className="space-y-6">
+            <SectionHeader
+              title="System AI API Keys"
+              subtitle="Configure AI providers for all users"
+            />
+            <SystemApiKeysTable keys={systemKeys} onRefresh={loadData} />
           </div>
         )}
       </div>

@@ -4,7 +4,7 @@ import { fileSystem } from '@/app/lib/fileSystem';
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, filePaths } = await req.json();
+    const { prompt, filePaths, provider = 'openai' } = await req.json();
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Process prompt with AI agent
-    const response = await aiAgent.processPrompt(prompt, files);
+    // Process prompt with AI agent using selected provider
+    const response = await aiAgent.processPrompt(prompt, files, provider);
 
     return NextResponse.json({
       success: true,
@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
       modifications: response.modifications,
       suggestedCommitMessage: response.suggestedCommitMessage,
       error: response.error,
+      provider: provider,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal server error';

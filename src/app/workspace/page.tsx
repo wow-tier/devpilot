@@ -81,6 +81,9 @@ export default function IDEWorkspace() {
     lineNumbers: true,
     wordWrap: false,
   });
+  
+  const [availableProviders, setAvailableProviders] = useState<Array<{id: string; name: string; available: boolean}>>([]);
+  const [selectedProvider, setSelectedProvider] = useState<string>('openai');
 
   const activeTab = tabs.find(t => t.id === activeTabId);
   const activeContent = activeTab ? fileContents[activeTab.path] || '' : '';
@@ -168,6 +171,34 @@ export default function IDEWorkspace() {
       setIsCloning(false);
     }
   }, [loadFiles, loadGitStatus]);
+
+  // Load available AI providers
+  useEffect(() => {
+    const loadProviders = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch('/api/ai/providers', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableProviders(data.providers);
+          if (data.defaultProvider) {
+            setSelectedProvider(data.defaultProvider);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading providers:', error);
+      }
+    };
+
+    loadProviders();
+  }, []);
 
   // Initial repository fetch
   useEffect(() => {
@@ -342,6 +373,7 @@ export default function IDEWorkspace() {
           prompt,
           repoPath,
           currentFile: activeTab?.path,
+          provider: selectedProvider,
         }),
       });
 
@@ -702,8 +734,40 @@ export default function IDEWorkspace() {
 
           {/* Right Panel - AI Chat */}
           {showRightPanel && (
-            <div className="w-80 border-l border-cursor-border bg-cursor-surface flex-shrink-0">
-              <AIChat onPromptSubmit={handlePromptSubmit} />
+            <div className="w-80 border-l border-cursor-border bg-cursor-surface flex-shrink-0 flex flex-col">
+              {/* AI Provider Selector */}
+              <div className="border-b border-cursor-border p-3 bg-cursor-surface-hover">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-cursor-text-secondary mb-2">
+                  AI Provider
+                </label>
+                <select
+                  value={selectedProvider}
+                  onChange={(e) => setSelectedProvider(e.target.value)}
+                  className="w-full px-3 py-2 bg-cursor-surface border border-cursor-border rounded-cursor-sm text-sm text-cursor-text focus:outline-none focus:ring-2 focus:ring-accent-blue"
+                >
+                  {availableProviders.map((provider) => (
+                    <option 
+                      key={provider.id} 
+                      value={provider.id}
+                      disabled={!provider.available}
+                    >
+                      {provider.name} {!provider.available && '(Not configured)'}
+                    </option>
+                  ))}
+                </select>
+                {availableProviders.length === 0 && (
+                  <p className="text-xs text-cursor-text-muted mt-2">
+                    No AI providers configured. Contact admin.
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex-1 overflow-hidden">
+                <AIChat 
+                  onPromptSubmit={handlePromptSubmit} 
+                  selectedProvider={selectedProvider}
+                />
+              </div>
             </div>
           )}
         </div>

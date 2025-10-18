@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
             path: clonePath,
             repository,
           });
-        } catch (gitError) {
+        } catch {
           // Directory exists but not a valid git repo, remove it
           console.log('Directory exists but is not a valid git repository, removing...');
           await fs.rm(clonePath, { recursive: true, force: true });

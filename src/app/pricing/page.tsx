@@ -345,9 +345,50 @@ export default function PricingPage() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-cursor-border bg-cursor-surface/80 backdrop-blur">
+      <footer className="border-t border-[#30363d] bg-[#161b22]/80 backdrop-blur">
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="text-center text-sm text-cursor-text-muted">
+          <div className="grid md:grid-cols-4 gap-12">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-md flex items-center justify-center">
+                  <Code2 className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-lg font-bold text-white">AI Code Agent</span>
+              </div>
+              <p className="text-[#7d8590] text-sm">
+                The AI-powered IDE for modern developers.
+              </p>
+            </div>
+            
+            <div>
+              <h5 className="font-semibold text-white mb-4 text-sm">Product</h5>
+              <ul className="space-y-2 text-sm text-[#7d8590]">
+                <li><Link href="/" className="hover:text-white transition-colors">Features</Link></li>
+                <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link href="/docs" className="hover:text-white transition-colors">Documentation</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h5 className="font-semibold text-white mb-4 text-sm">Company</h5>
+              <ul className="space-y-2 text-sm text-[#7d8590]">
+                <li><Link href="#" className="hover:text-white transition-colors">About</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Blog</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Careers</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h5 className="font-semibold text-white mb-4 text-sm">Legal</h5>
+              <ul className="space-y-2 text-sm text-[#7d8590]">
+                <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link></li>
+                <li><Link href="/terms" className="hover:text-white transition-colors">Terms</Link></li>
+                <li><Link href="/security" className="hover:text-white transition-colors">Security</Link></li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="border-t border-[#30363d] mt-12 pt-8 text-center text-sm text-[#7d8590]">
             <p>© 2025 AI Code Agent. All rights reserved.</p>
           </div>
         </div>

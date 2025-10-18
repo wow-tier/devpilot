@@ -20,6 +20,10 @@ interface User {
   email: string;
   createdAt: string;
   githubUsername?: string;
+  currentPlan?: {
+    name: string;
+    displayName: string;
+  };
   _count?: {
     repositories: number;
     subscriptions: number;

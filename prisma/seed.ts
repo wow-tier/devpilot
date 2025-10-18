@@ -3,11 +3,13 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Starting database seed...');
+  console.log('Seeding database...');
 
-  // Create default plans
-  const plans = [
-    {
+  // Create default plans if they don't exist
+  const freePlan = await prisma.plan.upsert({
+    where: { name: 'free' },
+    update: {},
+    create: {
       name: 'free',
       displayName: 'Free',
       description: 'Perfect for getting started',
@@ -15,18 +17,22 @@ async function main() {
       interval: 'month',
       features: JSON.stringify([
         'Up to 3 repositories',
-        '100 AI requests/month',
+        '100 AI requests per month',
         '1GB storage',
-        'Basic code editor',
-        'Git integration',
-        'Community support'
+        'Community support',
+        'Basic IDE features'
       ]),
       maxRepositories: 3,
       maxAIRequests: 100,
-      maxStorage: 1000, // MB
+      maxStorage: 1000,
       isActive: true
-    },
-    {
+    }
+  });
+
+  const proPlan = await prisma.plan.upsert({
+    where: { name: 'pro' },
+    update: {},
+    create: {
       name: 'pro',
       displayName: 'Pro',
       description: 'For professional developers',
@@ -34,64 +40,86 @@ async function main() {
       interval: 'month',
       features: JSON.stringify([
         'Unlimited repositories',
-        '1,000 AI requests/month',
-        '10GB storage',
-        'Advanced code editor',
-        'Git integration',
+        'Unlimited AI requests',
+        '50GB storage',
         'Priority support',
-        'AI code review',
-        'Custom themes',
-        'Team collaboration'
+        'Advanced IDE features',
+        'Team collaboration',
+        'Custom AI models'
       ]),
       maxRepositories: -1,
-      maxAIRequests: 1000,
-      maxStorage: 10000,
+      maxAIRequests: -1,
+      maxStorage: 50000,
       isActive: true
-    },
-    {
+    }
+  });
+
+  const enterprisePlan = await prisma.plan.upsert({
+    where: { name: 'enterprise' },
+    update: {},
+    create: {
       name: 'enterprise',
       displayName: 'Enterprise',
       description: 'For large teams',
       price: 99,
       interval: 'month',
       features: JSON.stringify([
+        'Everything in Pro',
         'Unlimited everything',
-        'Custom AI requests',
-        'Unlimited storage',
-        'Enterprise features',
         'Dedicated support',
         'SLA guarantee',
         'Custom integrations',
+        'SSO',
         'Advanced security',
-        'Team management',
-        'SSO integration'
+        'Custom AI training'
       ]),
       maxRepositories: -1,
       maxAIRequests: -1,
       maxStorage: -1,
       isActive: true
     }
-  ];
+  });
 
-  for (const plan of plans) {
-    const existing = await prisma.plan.findUnique({
-      where: { name: plan.name }
+  console.log('✅ Created default plans:', {
+    free: freePlan.id,
+    pro: proPlan.id,
+    enterprise: enterprisePlan.id
+  });
+
+  // Assign free plan to any users without subscriptions
+  const usersWithoutSubs = await prisma.user.findMany({
+    where: {
+      subscriptions: {
+        none: {}
+      }
+    }
+  });
+
+  for (const user of usersWithoutSubs) {
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setFullYear(periodEnd.getFullYear() + 100);
+
+    await prisma.subscription.create({
+      data: {
+        userId: user.id,
+        planId: freePlan.id,
+        status: 'active',
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+        cancelAtPeriodEnd: false
+      }
     });
 
-    if (!existing) {
-      await prisma.plan.create({ data: plan });
-      console.log(`Created plan: ${plan.displayName}`);
-    } else {
-      console.log(`Plan ${plan.displayName} already exists, skipping...`);
-    }
+    console.log(`✅ Assigned free plan to user: ${user.email}`);
   }
 
-  console.log('Database seed completed!');
+  console.log('Seeding complete!');
 }
 
 main()
   .catch((e) => {
-    console.error('Error seeding database:', e);
+    console.error('Seeding error:', e);
     process.exit(1);
   })
   .finally(async () => {

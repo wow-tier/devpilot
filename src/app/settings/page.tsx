@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { GlassPanel, AccentButton, SectionHeader } from '../components/ui';
 import AuthNavigation from '../components/AuthNavigation';
+import SubscriptionPanel from './components/SubscriptionPanel';
 
 interface User {
   id: string;
@@ -292,6 +293,10 @@ export default function SettingsPage() {
 
           {/* Content */}
           <div className="flex-1">
+            {activeTab === 'subscription' && (
+              <SubscriptionPanel />
+            )}
+
             {activeTab === 'account' && (
               <GlassPanel className="p-8">
                 <h2 className="text-xl font-bold text-cursor-text mb-6 flex items-center gap-3">

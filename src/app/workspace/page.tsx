@@ -66,7 +66,7 @@ export default function IDEWorkspace() {
   const [showSidebar, setShowSidebar] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [activeActivity, setActiveActivity] = useState<ActivityTab>('files');
-  const [gitBranch, setGitBranch] = useState<string>('main');
+  const [gitBranch] = useState<string>('main');
   const [currentRepo, setCurrentRepo] = useState<Repository | null>(null);
   const [repoPath, setRepoPath] = useState<string>('');
   const [isCloning, setIsCloning] = useState(false);
@@ -151,7 +151,6 @@ export default function IDEWorkspace() {
           const data = await response.json();
           const repo = data.repository;
           setCurrentRepo(repo);
-          setGitBranch(repo.defaultBranch || 'main');
           setShowWelcome(false);
           
           // Load files after setting repo

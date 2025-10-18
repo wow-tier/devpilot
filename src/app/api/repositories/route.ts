@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserRepositories, createRepository } from '@/app/lib/repository-db';
 import { verifySession } from '@/app/lib/auth-db';
+import { checkRepositoryLimit } from '@/app/lib/plan-limits';
 import simpleGit from 'simple-git';
 import path from 'path';
 import fs from 'fs/promises';
@@ -58,6 +59,14 @@ export async function POST(req: NextRequest) {
         { error: 'Invalid session' },
         { status: 401 }
       );
+    }
+
+    // Check repository limit based on user's plan
+    const limitCheck = await checkRepositoryLimit(user.id);
+    if (!limitCheck.allowed) {
+      return NextResponse.json({ 
+        error: limitCheck.message || 'Repository limit reached'
+      }, { status: 403 });
     }
 
     const { name, url, branch, description } = await req.json();

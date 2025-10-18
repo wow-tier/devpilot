@@ -9,6 +9,7 @@ import {
   Code2, Save, ExternalLink, Loader2, CheckCircle
 } from 'lucide-react';
 import { GlassPanel, AccentButton, SectionHeader } from '../components/ui';
+import AuthNavigation from '../components/AuthNavigation';
 
 interface User {
   id: string;
@@ -255,28 +256,9 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#0d1117]">
-      {/* Header */}
-      <header className="border-b border-cursor-border bg-cursor-surface sticky top-0 z-50 backdrop-blur-lg">
-        <div className="max-w-7xl mx-auto px-6 py-3">
-          <div className="flex items-center justify-between">
-            <Link 
-              href="/dashboard" 
-              className="flex items-center gap-2 text-cursor-text-muted hover:text-cursor-text transition-colors group"
-            >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              <span className="text-sm font-medium">Back to Dashboard</span>
-            </Link>
-            
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-accent-gradient rounded-cursor-md flex items-center justify-center shadow-cursor-md">
-                <Code2 className="w-5 h-5 text-white" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AuthNavigation />
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-8">
         <SectionHeader
           title="Settings"
           subtitle="Manage your account and preferences"

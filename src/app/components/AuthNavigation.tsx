@@ -43,8 +43,8 @@ export default function AuthNavigation({ }: AuthNavigationProps) {
   };
 
   return (
-    <nav className="bg-[#010409] border-b border-[#21262d] sticky top-0 z-50">
-      <div className="max-w-[1280px] mx-auto px-4 md:px-6 lg:px-8">
+    <nav className="bg-[#010409] border-b border-[#30363d] sticky top-0 z-50 backdrop-blur-sm">
+      <div className="max-w-[1280px] mx-auto px-4 md:px-6">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-4">
             <Link href={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-2 hover:opacity-80 transition-opacity">

@@ -72,6 +72,8 @@ export async function verifySession(token: string) {
     id: session.user.id,
     email: session.user.email,
     name: session.user.name,
+    avatar: session.user.avatar,
+    isAdmin: session.user.isAdmin,
   };
 }
 

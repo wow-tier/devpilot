@@ -29,6 +29,8 @@ export async function GET(req: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
+        avatar: user.avatar,
+        isAdmin: user.isAdmin,
       },
     });
   } catch (error) {

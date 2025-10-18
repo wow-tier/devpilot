@@ -20,10 +20,22 @@ export default function AuthNavigation({ }: AuthNavigationProps) {
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({ siteName: 'AI Code Agent', logoUrl: null });
 
   useEffect(() => {
-    fetch('/api/admin/site-settings')
-      .then(res => res.json())
-      .then(data => setSiteSettings(data.settings))
-      .catch(() => {});
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/admin/site-settings');
+        const data = await res.json();
+        if (data.settings) {
+          setSiteSettings(data.settings);
+        }
+      } catch (error) {
+        console.error('Failed to load site settings:', error);
+      }
+    };
+    loadSettings();
+    
+    // Reload settings when user logs in
+    const interval = setInterval(loadSettings, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogout = () => {
@@ -43,6 +55,8 @@ export default function AuthNavigation({ }: AuthNavigationProps) {
                   width={32}
                   height={32}
                   className="rounded-md"
+                  unoptimized
+                  key={siteSettings.logoUrl}
                 />
               ) : (
                 <div className="w-8 h-8 bg-white rounded-md flex items-center justify-center">
@@ -102,6 +116,7 @@ export default function AuthNavigation({ }: AuthNavigationProps) {
                       height={32}
                       className="rounded-full object-cover border-2 border-[#21262d]"
                       unoptimized
+                      key={user.avatar}
                     />
                   ) : (
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">

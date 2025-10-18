@@ -12,7 +12,7 @@ import AuthNavigation from '../components/AuthNavigation';
 export default function LandingPage() {
   const features = [
     {
-      icon: <Sparkles className="w-5 h-5" />,
+      icon: <Sparkles className="w-5 h-5 text-blue-400" />,
       title: 'AI-Powered Coding',
       description: 'Natural language to production-ready code. Intelligent refactoring and optimization.'
     },
@@ -63,14 +63,14 @@ export default function LandingPage() {
               AI-Powered Development Platform
             </div>
             
-            <h2 className="text-5xl md:text-7xl font-bold text-cursor-text mb-6 tracking-tight leading-tight">
+            <h2 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight leading-tight">
               Code with AI,
-              <span className="block text-accent-blue">
+              <span className="block bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">
                 Ship 10x Faster
               </span>
             </h2>
             
-            <p className="text-lg md:text-xl text-cursor-text-secondary max-w-3xl mx-auto mb-10 leading-relaxed">
+            <p className="text-lg md:text-xl text-[#7d8590] max-w-3xl mx-auto mb-10 leading-relaxed">
               The professional IDE that understands natural language. Build, refactor, and deploy code with intelligent AI assistance.
             </p>
             

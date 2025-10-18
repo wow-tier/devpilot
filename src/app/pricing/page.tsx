@@ -160,7 +160,7 @@ export default function PricingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-cursor-base relative overflow-hidden">
+    <div className="min-h-screen bg-[#0d1117] relative overflow-hidden">
       {/* Ambient Background Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-1/4 w-96 h-96 bg-accent-blue/5 rounded-full blur-3xl" />
@@ -168,7 +168,7 @@ export default function PricingPage() {
       </div>
 
       {/* Navigation */}
-      <AuthNavigation transparent />
+      <AuthNavigation />
 
       {/* Hero Section */}
       <div className="relative">

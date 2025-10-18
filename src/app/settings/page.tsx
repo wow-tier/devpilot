@@ -121,7 +121,7 @@ export default function SettingsPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-cursor-base flex items-center justify-center">
+      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-accent-blue border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-cursor-text-secondary">Loading...</p>
@@ -185,8 +185,12 @@ export default function SettingsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setUser({ ...user, avatar: data.avatarUrl });
-        window.location.reload(); // Reload to update header avatar
+        if (user && data.avatarUrl) {
+          const updatedUser = { ...user, avatar: data.avatarUrl };
+          setUser(updatedUser);
+          // Force header refresh by reloading
+          setTimeout(() => window.location.reload(), 500);
+        }
       }
     } catch (error) {
       console.error('Error uploading photo:', error);
@@ -250,7 +254,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-cursor-base">
+    <div className="min-h-screen bg-[#0d1117]">
       {/* Header */}
       <header className="border-b border-cursor-border bg-cursor-surface sticky top-0 z-50 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-6 py-3">
@@ -327,17 +331,19 @@ export default function SettingsPage() {
                       Profile Picture
                     </label>
                     <div className="flex items-center gap-4">
-                      {user.avatar ? (
+                      {user?.avatar ? (
                         <Image 
                           src={user.avatar} 
                           alt="Profile" 
                           width={80}
                           height={80}
                           className="rounded-full object-cover"
+                          unoptimized
+                          key={user.avatar}
                         />
                       ) : (
                         <div className="w-20 h-20 bg-accent-gradient rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                          {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+                          {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase()}
                         </div>
                       )}
                       <div>

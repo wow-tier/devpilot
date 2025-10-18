@@ -674,7 +674,7 @@ export default function IDEWorkspace() {
                   </Link>
                 </div>
               ) : activeTab ? (
-                <div className="h-full bg-cursor-base">
+                <div className="h-full bg-[#0d1117]">
                   <CodeEditor
                     value={activeContent}
                     onChange={handleCodeChange}

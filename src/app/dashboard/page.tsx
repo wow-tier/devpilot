@@ -215,7 +215,7 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-cursor-base flex items-center justify-center">
+      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 text-accent-blue animate-spin" />
           <p className="text-sm text-cursor-text-secondary">Loading...</p>
@@ -225,7 +225,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cursor-base">
+    <div className="min-h-screen bg-[#0d1117]">
       {/* Header */}
       <header className="border-b border-cursor-border bg-cursor-surface sticky top-0 z-50 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">

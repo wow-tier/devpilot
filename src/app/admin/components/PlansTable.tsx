@@ -125,23 +125,31 @@ export default function PlansTable({ plans, onDelete, onRefresh }: PlansTablePro
 
   if (plans.length === 0 && !showForm) {
     return (
-      <GlassPanel className="p-8 text-center">
-        <div className="text-4xl mb-3 opacity-50">💳</div>
-        <p className="text-cursor-text-secondary">No plans configured</p>
-      </GlassPanel>
+      <div className="space-y-6">
+        <GlassPanel className="p-8 text-center">
+          <div className="text-4xl mb-3 opacity-50">💳</div>
+          <p className="text-cursor-text-secondary mb-4">No plans configured</p>
+          <AccentButton onClick={handleAdd} icon={<Plus className="w-4 h-4" />}>
+            Add Your First Plan
+          </AccentButton>
+        </GlassPanel>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Add Plan Button */}
-      {!showForm && (
-        <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-bold text-cursor-text">Subscription Plans</h2>
+          <p className="text-sm text-cursor-text-muted mt-1">{plans.length} plans configured</p>
+        </div>
+        {!showForm && (
           <AccentButton onClick={handleAdd} icon={<Plus className="w-4 h-4" />}>
             Add New Plan
           </AccentButton>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Add/Edit Form */}
       {showForm && (

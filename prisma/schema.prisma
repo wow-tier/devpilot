@@ -19,6 +19,7 @@ model User {
   name          String?
   password      String
   avatar        String?
+  isAdmin       Boolean   @default(false)
   githubId      String?   @unique
   githubUsername String?
   createdAt     DateTime  @default(now())
@@ -35,6 +36,7 @@ model User {
   
   @@index([email])
   @@index([githubId])
+  @@index([isAdmin])
 }
 
 model Session {

@@ -1,41 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { checkAdmin } from '@/app/lib/admin-auth';
 
 const prisma = new PrismaClient();
-
-// Middleware to check if user is admin
-async function checkAdmin(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return null;
-    }
-
-    const token = authHeader.substring(7);
-    const session = await prisma.session.findUnique({
-      where: { token },
-      include: { user: true }
-    });
-
-    if (!session || session.expiresAt < new Date()) {
-      return null;
-    }
-
-    // Check if user is admin (we'll use email domain or a custom field)
-    // For now, we'll check if email ends with @admin.com or has admin in it
-    const isAdmin = session.user.email.includes('admin') || session.user.email.endsWith('@admin.com');
-    
-    if (!isAdmin) {
-      return null;
-    }
-
-    return session.user;
-  } catch (error) {
-    console.error('Auth error:', error);
-    return null;
-  }
-}
 
 // GET - List all users
 export async function GET(request: NextRequest) {

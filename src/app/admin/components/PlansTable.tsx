@@ -1,5 +1,6 @@
-import { Trash2, Users, CheckCircle } from 'lucide-react';
-import { GlassPanel } from '../../components/ui';
+import { useState } from 'react';
+import { Trash2, Users, CheckCircle, Plus, Edit, Save, X } from 'lucide-react';
+import { GlassPanel, AccentButton } from '../../components/ui';
 
 interface Plan {
   id: string;
@@ -19,16 +20,110 @@ interface Plan {
 interface PlansTableProps {
   plans: Plan[];
   onDelete?: (id: string) => void;
+  onRefresh: () => void;
 }
 
-export default function PlansTable({ plans, onDelete }: PlansTableProps) {
+export default function PlansTable({ plans, onDelete, onRefresh }: PlansTableProps) {
+  const [showForm, setShowForm] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    displayName: '',
+    description: '',
+    price: 0,
+    interval: 'month',
+    maxRepositories: 5,
+    maxAIRequests: 100,
+    maxStorage: 1000,
+    isActive: true
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const handleDelete = (id: string, name: string) => {
     if (onDelete && confirm(`Are you sure you want to delete the ${name} plan?`)) {
       onDelete(id);
     }
   };
 
-  if (plans.length === 0) {
+  const handleEdit = (plan: Plan) => {
+    setEditingPlan(plan);
+    setFormData({
+      name: plan.name,
+      displayName: plan.displayName,
+      description: plan.description || '',
+      price: Number(plan.price),
+      interval: plan.interval,
+      maxRepositories: plan.maxRepositories,
+      maxAIRequests: plan.maxAIRequests,
+      maxStorage: 1000, // Default value
+      isActive: plan.isActive
+    });
+    setShowForm(true);
+  };
+
+  const handleAdd = () => {
+    setEditingPlan(null);
+    setFormData({
+      name: '',
+      displayName: '',
+      description: '',
+      price: 0,
+      interval: 'month',
+      maxRepositories: 5,
+      maxAIRequests: 100,
+      maxStorage: 1000,
+      isActive: true
+    });
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (!formData.name || !formData.displayName || formData.price < 0) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const url = editingPlan 
+        ? `/api/admin/plans/${editingPlan.id}`
+        : '/api/admin/plans';
+      
+      const response = await fetch(url, {
+        method: editingPlan ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        setShowForm(false);
+        setEditingPlan(null);
+        onRefresh();
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Failed to save plan');
+      }
+    } catch (error) {
+      console.error('Error saving plan:', error);
+      setError('Failed to save plan');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingPlan(null);
+    setError('');
+  };
+
+  if (plans.length === 0 && !showForm) {
     return (
       <GlassPanel className="p-8 text-center">
         <div className="text-4xl mb-3 opacity-50">💳</div>

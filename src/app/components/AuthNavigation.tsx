@@ -13,11 +13,18 @@ interface AuthNavigationProps {
 interface SiteSettings {
   siteName: string;
   logoUrl: string | null;
+  logoWidth: number;
+  logoHeight: number;
 }
 
 export default function AuthNavigation({ }: AuthNavigationProps) {
   const { user, loading, isAuthenticated, logout } = useAuth();
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>({ siteName: 'AI Code Agent', logoUrl: null });
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({ 
+    siteName: 'AI Code Agent', 
+    logoUrl: null,
+    logoWidth: 48,
+    logoHeight: 48
+  });
 
   useEffect(() => {
     const loadSettings = async () => {

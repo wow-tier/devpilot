@@ -11,6 +11,8 @@ interface SiteSettings {
   supportEmail: string;
   primaryColor: string;
   secondaryColor: string;
+  logoWidth: number;
+  logoHeight: number;
 }
 
 export default function SiteSettingsPanel() {
@@ -21,7 +23,9 @@ export default function SiteSettingsPanel() {
     tagline: 'The AI-powered IDE for modern developers',
     supportEmail: 'support@example.com',
     primaryColor: '#3b82f6',
-    secondaryColor: '#8b5cf6'
+    secondaryColor: '#8b5cf6',
+    logoWidth: 48,
+    logoHeight: 48
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -307,6 +311,37 @@ export default function SiteSettingsPanel() {
               className="input-cursor w-full"
               placeholder="The AI-powered IDE for modern developers"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+          <label className="block text-sm font-semibold text-cursor-text mb-2">
+            Logo Width (px)
+          </label>
+          <input
+            type="number"
+            value={settings.logoWidth || 48}
+            onChange={(e) => setSettings({ ...settings, logoWidth: parseInt(e.target.value) || 48 })}
+            className="input-cursor w-full"
+            placeholder="48"
+            min="16"
+            max="200"
+          />
+            </div>
+            <div>
+          <label className="block text-sm font-semibold text-cursor-text mb-2">
+            Logo Height (px)
+          </label>
+          <input
+            type="number"
+            value={settings.logoHeight || 48}
+            onChange={(e) => setSettings({ ...settings, logoHeight: parseInt(e.target.value) || 48 })}
+            className="input-cursor w-full"
+            placeholder="48"
+            min="16"
+            max="200"
+          />
+            </div>
           </div>
 
           <div>

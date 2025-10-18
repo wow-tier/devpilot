@@ -187,7 +187,8 @@ export default function SettingsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
+        setUser({ ...user, avatar: data.avatarUrl });
+        window.location.reload(); // Reload to update header avatar
       }
     } catch (error) {
       console.error('Error uploading photo:', error);

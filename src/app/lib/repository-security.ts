@@ -47,16 +47,18 @@ export async function verifyRepositoryOwnership(
  */
 export async function getRepositoryPath(repositoryId: string): Promise<string> {
   const repository = await prisma.repository.findUnique({
-    where: { id: repositoryId }
+    where: { id: repositoryId },
+    include: { user: true }
   });
 
   if (!repository) {
     throw new Error('Repository not found');
   }
 
-  // Generate safe directory name from repository ID
-  const safeDirName = repositoryId.replace(/[^a-zA-Z0-9-_]/g, '');
-  return path.join(REPOS_BASE_DIR, safeDirName);
+  // Match the structure used in clone/route.ts: user-repos/{userId}/{repoName}
+  const userRepoDir = path.join(REPOS_BASE_DIR, repository.userId);
+  const repoName = repository.name.replace(/[^a-zA-Z0-9-_]/g, '-');
+  return path.join(userRepoDir, repoName);
 }
 
 /**

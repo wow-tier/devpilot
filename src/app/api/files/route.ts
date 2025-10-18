@@ -53,6 +53,21 @@ export async function GET(req: NextRequest) {
 
     const targetPath = validation.fullPath!;
 
+    // Check if directory exists
+    try {
+      await fs.access(targetPath);
+    } catch {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Repository directory not found. Please clone the repository first.',
+          files: [],
+          currentPath: directory
+        },
+        { status: 404 }
+      );
+    }
+
     const entries = await fs.readdir(targetPath, { withFileTypes: true });
     
     const files = entries

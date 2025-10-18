@@ -108,6 +108,11 @@ export default function IDEWorkspace() {
 
       if (response.ok) {
         setFiles(data.files || []);
+      } else if (response.status === 404) {
+        // Repository directory not found
+        console.error('Repository not found:', data.error);
+        setCloneError(data.error || 'Repository directory not found. Please clone again.');
+        setShowWelcome(true);
       }
     } catch (error) {
       console.error('Error loading files:', error);

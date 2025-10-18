@@ -24,6 +24,11 @@ export default function RootLayout({
         className={`min-h-screen bg-cursor-base text-cursor-text antialiased ${inter.className}`}
         suppressHydrationWarning
       >
+        <nav>
+          <ul>
+            <li><a href="/admin">Admin</a></li>
+          </ul>
+        </nav>
         {children}
       </body>
     </html>

@@ -5,12 +5,11 @@ import dynamic from 'next/dynamic';
 import { 
   Code2, GitBranch, Save, FileText, CheckCircle, Settings as SettingsIcon, 
   Loader2, Files, Search, GitPullRequest, Terminal as TerminalIcon,
-  MessageSquare, PanelLeftClose, FolderGit2
+  MessageSquare, PanelLeftClose, FolderGit2, ArrowLeft
 } from 'lucide-react';
 import { GlassPanel, AccentButton } from '../components/ui';
 import Sidebar from '../components/Sidebar';
 import AIChat from '../components/AIChat';
-import WelcomeScreen from '../components/WelcomeScreen';
 import StatusBar from '../components/StatusBar';
 import KeyboardShortcuts from '../components/KeyboardShortcuts';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -90,20 +89,21 @@ export default function IDEWorkspace() {
   const [, setFiles] = useState<{ name: string; isDirectory: boolean }[]>([]);
 
   // Wrap loadFiles in useCallback
-  const loadFiles = useCallback(async (directory = '.', customRepoPath?: string) => {
+  const loadFiles = useCallback(async (directory = '.') => {
+    if (!currentRepo) return;
+
     try {
-      const pathToUse = customRepoPath || repoPath;
-      
+      const token = localStorage.getItem('token');
       const queryParams = new URLSearchParams();
-      
-      if (pathToUse) {
-        queryParams.append('repoPath', pathToUse);
-      }
-      
+      queryParams.append('repositoryId', currentRepo.id);
       queryParams.append('directory', directory);
       
       const url = `/api/files?${queryParams.toString()}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       const data = await response.json();
 
       if (response.ok) {
@@ -112,7 +112,7 @@ export default function IDEWorkspace() {
     } catch (error) {
       console.error('Error loading files:', error);
     }
-  }, [repoPath]);
+  }, [currentRepo]);
 
   // Wrap loadGitStatus in useCallback
   const loadGitStatus = useCallback(async (path: string) => {
@@ -159,7 +159,7 @@ export default function IDEWorkspace() {
       if (response.ok) {
         setRepoPath(data.path);
         setShowWelcome(false);
-        loadFiles('.', data.path);
+        loadFiles('.');
         loadGitStatus(data.path);
       } else {
         setCloneError(data.error || 'Failed to clone repository');
@@ -200,59 +200,69 @@ export default function IDEWorkspace() {
     loadProviders();
   }, []);
 
-  // Initial repository fetch
+  // Initial repository fetch with security enforcement
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const repoId = params.get('repo');
     
-    if (repoId) {
-      const fetchRepository = async () => {
-        try {
-          const token = localStorage.getItem('token');
-          
-          if (!token) {
-            setShowWelcome(true);
-            return;
-          }
-
-          const response = await fetch(`/api/repositories/${repoId}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const repo = data.repository;
-            setCurrentRepo(repo);
-            setGitBranch(repo.defaultBranch || 'main');
-            cloneRepository(repo.id);
-          } else {
-            setShowWelcome(true);
-          }
-        } catch (error) {
-          console.error('Error fetching repository:', error);
-          setShowWelcome(true);
-        }
-      };
-
-      fetchRepository();
-    } else {
+    // SECURITY: Force repository selection - no access without valid repo
+    if (!repoId) {
       setShowWelcome(true);
+      setCloneError('Please select a repository from your dashboard');
+      return;
     }
+
+    const fetchRepository = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          setShowWelcome(true);
+          setCloneError('Please login to access workspace');
+          return;
+        }
+
+        const response = await fetch(`/api/repositories/${repoId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const repo = data.repository;
+          setCurrentRepo(repo);
+          setGitBranch(repo.defaultBranch || 'main');
+          cloneRepository(repo.id);
+        } else {
+          setShowWelcome(true);
+          setCloneError('Repository not found or access denied');
+        }
+      } catch (error) {
+        console.error('Error fetching repository:', error);
+        setShowWelcome(true);
+        setCloneError('Failed to load repository');
+      }
+    };
+
+    fetchRepository();
   }, [cloneRepository]);
 
   // Wrap handleSaveFile in useCallback
   const handleSaveFile = useCallback(async () => {
-    if (!activeTab) return;
+    if (!activeTab || !currentRepo) return;
 
     try {
+      const token = localStorage.getItem('token');
       const queryParams = new URLSearchParams();
-      if (repoPath) queryParams.append('repoPath', repoPath);
+      queryParams.append('repositoryId', currentRepo.id);
 
       await fetch(`/api/files/${encodeURIComponent(activeTab.path)}?${queryParams.toString()}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ content: fileContents[activeTab.path] }),
       });
 
@@ -262,7 +272,7 @@ export default function IDEWorkspace() {
     } catch (error) {
       console.error('Error saving file:', error);
     }
-  }, [activeTab, activeTabId, fileContents, repoPath]);
+  }, [activeTab, activeTabId, fileContents, currentRepo]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -292,12 +302,21 @@ export default function IDEWorkspace() {
   }, [activeTab, showTerminal, showSidebar, handleSaveFile]);
 
   const handleFileSelect = async (filePath: string) => {
-    try {
-      const queryParams = new URLSearchParams();
-      queryParams.append('filePath', filePath);
-      if (repoPath) queryParams.append('repoPath', repoPath);
+    if (!currentRepo) {
+      console.error('No repository selected');
+      return;
+    }
 
-      const response = await fetch(`/api/files/${encodeURIComponent(filePath)}?${queryParams.toString()}`);
+    try {
+      const token = localStorage.getItem('token');
+      const queryParams = new URLSearchParams();
+      queryParams.append('repositoryId', currentRepo.id);
+
+      const response = await fetch(`/api/files/${encodeURIComponent(filePath)}?${queryParams.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       const data = await response.json();
 
       if (response.ok) {
@@ -627,13 +646,14 @@ export default function IDEWorkspace() {
                   </button>
                 </div>
                 <div className="flex-1 overflow-auto">
-                  {activeActivity === 'files' && (
+                  {activeActivity === 'files' && currentRepo && (
                     <Sidebar
                       onFileSelect={handleFileSelect}
                       selectedFile={activeTab?.path}
                       onFileCreate={() => {}}
                       onFileDelete={() => {}}
                       onFileRename={() => {}}
+                      repositoryId={currentRepo.id}
                       repoPath={repoPath}
                     />
                   )}
@@ -667,8 +687,26 @@ export default function IDEWorkspace() {
             )}
 
             <div className="flex-1 overflow-hidden">
-              {showWelcome ? (
-                <WelcomeScreen onGetStarted={() => setShowWelcome(false)} />
+              {showWelcome || !currentRepo ? (
+                <div className="flex flex-col items-center justify-center h-full p-8">
+                  <div className="w-24 h-24 bg-cursor-surface-hover rounded-cursor-lg flex items-center justify-center mb-6">
+                    <FolderGit2 className="w-12 h-12 text-accent-blue opacity-50" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-cursor-text mb-3">No Repository Selected</h2>
+                  <p className="text-cursor-text-secondary text-center max-w-md mb-6">
+                    For security reasons, you must select a repository from your dashboard to access the workspace.
+                  </p>
+                  {cloneError && (
+                    <div className="mb-6 p-4 bg-danger/10 border border-danger/30 rounded-cursor-sm text-danger text-sm max-w-md">
+                      {cloneError}
+                    </div>
+                  )}
+                  <Link href="/dashboard">
+                    <AccentButton icon={<ArrowLeft className="w-4 h-4" />}>
+                      Go to Dashboard
+                    </AccentButton>
+                  </Link>
+                </div>
               ) : activeTab ? (
                 <div className="h-full bg-cursor-base">
                   <CodeEditor
@@ -725,9 +763,9 @@ export default function IDEWorkspace() {
               </div>
             )}
 
-            {showTerminal && (
+            {showTerminal && currentRepo && (
               <div className="border-t border-cursor-border h-64 bg-cursor-surface">
-                <Terminal />
+                <Terminal repositoryId={currentRepo.id} repoPath={repoPath} />
               </div>
             )}
           </div>

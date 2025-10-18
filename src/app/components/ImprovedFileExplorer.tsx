@@ -25,6 +25,7 @@ interface ImprovedFileExplorerProps {
   onFileDelete?: (path: string) => void;
   onFileRename?: (oldPath: string, newPath: string) => void;
   selectedFile?: string;
+  repositoryId: string;
   repoPath?: string;
 }
 
@@ -34,7 +35,7 @@ export default function ImprovedFileExplorer({
   onFileDelete,
   onFileRename,
   selectedFile,
-  repoPath
+  repositoryId
 }: ImprovedFileExplorerProps) {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['.']));
@@ -44,27 +45,31 @@ export default function ImprovedFileExplorer({
   const loadFiles = useCallback(async (path: string) => {
     setIsLoading(true);
     try {
+      const token = localStorage.getItem('token');
       const queryParams = new URLSearchParams();
       queryParams.append('directory', path);
+      queryParams.append('repositoryId', repositoryId);
       
-      if (repoPath) {
-        queryParams.append('repoPath', repoPath);
-        console.log('📁 ImprovedFileExplorer using repoPath:', repoPath);
-      } else {
-        console.warn('⚠️ ImprovedFileExplorer: No repoPath provided, will show workspace files');
-      }
+      const response = await fetch(`/api/files?${queryParams.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       
-      const response = await fetch(`/api/files?${queryParams.toString()}`);
       const data = await response.json();
       if (data.success) {
         setFiles(data.files);
+      } else if (data.error) {
+        console.error('Error loading files:', data.error);
+        setFiles([]);
       }
     } catch (error) {
       console.error('Error loading files:', error);
+      setFiles([]);
     } finally {
       setIsLoading(false);
     }
-  }, [repoPath]);
+  }, [repositoryId]);
 
   useEffect(() => {
     loadFiles('.');

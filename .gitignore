@@ -35,5 +35,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# User repositories (cloned from GitHub)
+# User uploaded files
+/public/uploads/
+
+# User repositories (SECURITY: Never commit user data!)
 /user-repos/

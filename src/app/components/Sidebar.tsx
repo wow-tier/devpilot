@@ -15,6 +15,7 @@ interface SidebarProps {
   onFileDelete?: (path: string) => void;
   onFileRename?: (oldPath: string, newPath: string) => void;
   onSearchResult?: (file: string, line: number) => void;
+  repositoryId: string;
   repoPath?: string;
 }
 
@@ -25,6 +26,7 @@ export default function Sidebar({
   onFileDelete,
   onFileRename,
   onSearchResult,
+  repositoryId,
   repoPath
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('files');
@@ -73,12 +75,13 @@ export default function Sidebar({
       {/* Content */}
       <div className="flex-1 min-w-0">
         {activeTab === 'files' && (
-          <ImprovedFileExplorer
+          <ImprovedFileExplorer 
             onFileSelect={onFileSelect}
             selectedFile={selectedFile}
             onFileCreate={onFileCreate}
             onFileDelete={onFileDelete}
             onFileRename={onFileRename}
+            repositoryId={repositoryId}
             repoPath={repoPath}
           />
         )}

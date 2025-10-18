@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fileSystem } from '@/app/lib/fileSystem';
+import { promises as fs } from 'fs';
+import { getUserFromToken, validateFilePath, getRepositoryPath, verifyRepositoryOwnership } from '@/app/lib/repository-security';
 
 // GET - Read a specific file
 export async function GET(
@@ -7,19 +8,59 @@ export async function GET(
   { params }: { params: Promise<{ filePath: string }> }
 ) {
   try {
+    // SECURITY: Require authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = await getUserFromToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { filePath } = await params;
     const decodedPath = decodeURIComponent(filePath);
     
-    // Get repoPath from query parameters
     const searchParams = req.nextUrl.searchParams;
-    const repoPath = searchParams.get('repoPath');
+    const repositoryId = searchParams.get('repositoryId');
+
+    // SECURITY: Repository ID is REQUIRED
+    if (!repositoryId) {
+      return NextResponse.json(
+        { error: 'Repository ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // SECURITY: Verify ownership
+    const ownership = await verifyRepositoryOwnership(repositoryId, user.id);
+    if (!ownership.valid) {
+      return NextResponse.json(
+        { error: ownership.error || 'Access denied' },
+        { status: 403 }
+      );
+    }
+
+    const repoBasePath = await getRepositoryPath(repositoryId);
+    const validation = validateFilePath(decodedPath, repoBasePath);
     
-    // Read the file with the correct path
-    const fileContent = await fileSystem.readFile(decodedPath, repoPath || undefined);
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.error || 'Invalid path' },
+        { status: 403 }
+      );
+    }
+
+    // Read file content
+    const content = await fs.readFile(validation.fullPath!, 'utf-8');
     
     return NextResponse.json({ 
-      success: true, 
-      ...fileContent 
+      success: true,
+      content,
+      path: decodedPath
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -41,29 +82,64 @@ export async function PUT(
   { params }: { params: Promise<{ filePath: string }> }
 ) {
   try {
+    // SECURITY: Require authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = await getUserFromToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { filePath } = await params;
     const decodedPath = decodeURIComponent(filePath);
     
-    // Get repoPath from query parameters
     const searchParams = req.nextUrl.searchParams;
-    const repoPath = searchParams.get('repoPath');
+    const repositoryId = searchParams.get('repositoryId');
     
-    // Get content from request body
     const body = await req.json();
     const { content } = body;
     
     if (typeof content !== 'string') {
       return NextResponse.json(
-        { 
-          success: false,
-          error: 'Content must be a string' 
-        },
+        { error: 'Content must be a string' },
         { status: 400 }
       );
     }
+
+    // SECURITY: Repository ID is REQUIRED
+    if (!repositoryId) {
+      return NextResponse.json(
+        { error: 'Repository ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // SECURITY: Verify ownership
+    const ownership = await verifyRepositoryOwnership(repositoryId, user.id);
+    if (!ownership.valid) {
+      return NextResponse.json(
+        { error: ownership.error || 'Access denied' },
+        { status: 403 }
+      );
+    }
+
+    const repoBasePath = await getRepositoryPath(repositoryId);
+    const validation = validateFilePath(decodedPath, repoBasePath);
     
-    // Write the file with the correct path
-    await fileSystem.writeFile(decodedPath, content, repoPath || undefined);
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.error || 'Invalid path' },
+        { status: 403 }
+      );
+    }
+
+    // Write file content
+    await fs.writeFile(validation.fullPath!, content, 'utf-8');
     
     return NextResponse.json({ 
       success: true,
@@ -89,15 +165,54 @@ export async function DELETE(
   { params }: { params: Promise<{ filePath: string }> }
 ) {
   try {
+    // SECURITY: Require authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = await getUserFromToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { filePath } = await params;
     const decodedPath = decodeURIComponent(filePath);
     
-    // Get repoPath from query parameters
     const searchParams = req.nextUrl.searchParams;
-    const repoPath = searchParams.get('repoPath');
+    const repositoryId = searchParams.get('repositoryId');
+
+    // SECURITY: Repository ID is REQUIRED
+    if (!repositoryId) {
+      return NextResponse.json(
+        { error: 'Repository ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // SECURITY: Verify ownership
+    const ownership = await verifyRepositoryOwnership(repositoryId, user.id);
+    if (!ownership.valid) {
+      return NextResponse.json(
+        { error: ownership.error || 'Access denied' },
+        { status: 403 }
+      );
+    }
+
+    const repoBasePath = await getRepositoryPath(repositoryId);
+    const validation = validateFilePath(decodedPath, repoBasePath);
     
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.error || 'Invalid path' },
+        { status: 403 }
+      );
+    }
+
     // Delete the file
-    await fileSystem.deleteFile(decodedPath, repoPath || undefined);
+    await fs.unlink(validation.fullPath!);
     
     return NextResponse.json({ 
       success: true,

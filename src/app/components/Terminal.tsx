@@ -8,10 +8,17 @@ interface TerminalLine {
   content: string;
 }
 
-export default function Terminal() {
+interface TerminalProps {
+  repositoryId: string;
+  repoPath?: string;
+}
+
+export default function Terminal({ repositoryId }: TerminalProps) {
   const [lines, setLines] = useState<TerminalLine[]>([
     { id: '1', type: 'output', content: 'AI Code Agent Terminal v0.1.0' },
-    { id: '2', type: 'output', content: 'Type "help" for available commands' },
+    { id: '2', type: 'output', content: `Working directory: Repository #${repositoryId.slice(0, 8)}` },
+    { id: '3', type: 'output', content: '⚠️  Commands are restricted to your repository directory' },
+    { id: '4', type: 'output', content: 'Type "help" for available commands' },
   ]);
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<string[]>([]);

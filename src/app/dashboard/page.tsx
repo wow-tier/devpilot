@@ -188,26 +188,6 @@ export default function DashboardPage() {
     router.push(`/workspace?repo=${repo.id}`);
   };
 
-  const handleLogout = async () => {
-    const token = localStorage.getItem('token');
-    
-    if (token) {
-      try {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-      } catch (error) {
-        console.error('Logout error:', error);
-      }
-    }
-
-    localStorage.clear();
-    router.push('/');
-  };
-
   const filteredRepositories = repositories.filter(repo =>
     repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     repo.description?.toLowerCase().includes(searchQuery.toLowerCase())

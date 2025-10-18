@@ -21,6 +21,33 @@ export async function POST(req: NextRequest) {
     // Create session token
     const token = await createSession(user.id);
 
+    // Assign free plan to new user
+    try {
+      const freePlan = await prisma.plan.findFirst({
+        where: { name: 'free', isActive: true }
+      });
+
+      if (freePlan) {
+        const now = new Date();
+        const periodEnd = new Date(now);
+        periodEnd.setFullYear(periodEnd.getFullYear() + 100); // Free plan never expires
+
+        await prisma.subscription.create({
+          data: {
+            userId: user.id,
+            planId: freePlan.id,
+            status: 'active',
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+            cancelAtPeriodEnd: false
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Failed to assign free plan:', error);
+      // Don't fail signup if plan assignment fails
+    }
+
     return NextResponse.json({
       success: true,
       user,

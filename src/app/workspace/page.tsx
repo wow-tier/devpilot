@@ -68,8 +68,6 @@ export default function IDEWorkspace() {
   const [activeActivity, setActiveActivity] = useState<ActivityTab>('files');
   const [gitBranch] = useState<string>('main');
   const [currentRepo, setCurrentRepo] = useState<Repository | null>(null);
-  const [repoPath, setRepoPath] = useState<string>('');
-  const [isCloning, setIsCloning] = useState(false);
   const [cloneError, setCloneError] = useState('');
   const [settings, setSettings] = useState<SettingsType>({
     theme: 'dark',
@@ -313,7 +311,7 @@ export default function IDEWorkspace() {
   };
 
   const handlePromptSubmit = async (prompt: string) => {
-    if (!currentRepo || !repoPath) return;
+    if (!currentRepo) return;
 
     try {
       const token = localStorage.getItem('token');
@@ -325,7 +323,7 @@ export default function IDEWorkspace() {
         },
         body: JSON.stringify({
           prompt,
-          repoPath,
+          repositoryId: currentRepo.id,
           currentFile: activeTab?.path,
           provider: selectedProvider,
         }),
@@ -343,10 +341,12 @@ export default function IDEWorkspace() {
   };
 
   const handleApplyModifications = async () => {
+    if (!currentRepo) return;
+    
     for (const mod of modifications) {
       try {
         const queryParams = new URLSearchParams();
-        if (repoPath) queryParams.append('repoPath', repoPath);
+        queryParams.append('repositoryId', currentRepo.id);
 
         await fetch(`/api/files/${encodeURIComponent(mod.filePath)}?${queryParams.toString()}`, {
           method: 'PUT',
@@ -415,21 +415,6 @@ export default function IDEWorkspace() {
         <KeyboardShortcuts />
 
         {/* Loading/Error States */}
-        {isCloning && (
-          <div className="fixed inset-0 bg-cursor-base/95 backdrop-blur-sm flex items-center justify-center z-50">
-            <GlassPanel className="p-8 max-w-md">
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="w-12 h-12 animate-spin text-accent-blue" />
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold mb-2">Cloning Repository</h3>
-                  <p className="text-sm text-cursor-text-secondary">
-                    {currentRepo?.name || 'Repository'}
-                  </p>
-                </div>
-              </div>
-            </GlassPanel>
-          </div>
-        )}
 
         {cloneError && (
           <div className="fixed top-4 right-4 z-50">
@@ -592,7 +577,7 @@ export default function IDEWorkspace() {
                       onFileDelete={() => {}}
                       onFileRename={() => {}}
                       repositoryId={currentRepo.id}
-                      repoPath={repoPath}
+                      
                     />
                   )}
                   {activeActivity === 'search' && (
@@ -703,7 +688,7 @@ export default function IDEWorkspace() {
 
             {showTerminal && currentRepo && (
               <div className="border-t border-cursor-border h-64 bg-cursor-surface">
-                <Terminal repositoryId={currentRepo.id} repoPath={repoPath} />
+                <Terminal repositoryId={currentRepo.id}  />
               </div>
             )}
           </div>

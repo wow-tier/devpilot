@@ -10,7 +10,6 @@ interface TerminalLine {
 
 interface TerminalProps {
   repositoryId: string;
-  repoPath?: string;
 }
 
 export default function Terminal({ repositoryId }: TerminalProps) {

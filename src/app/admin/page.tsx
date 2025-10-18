@@ -114,7 +114,22 @@ export default function AdminPage() {
 
       if (usersRes.ok) {
         const data = await usersRes.json();
-        setUsers(data.users);
+        // Fetch subscriptions for each user
+        const usersWithPlans = await Promise.all(data.users.map(async (user: User) => {
+          try {
+            const subResponse = await fetch(`/api/admin/users/${user.id}/subscription`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (subResponse.ok) {
+              const subData = await subResponse.json();
+              return { ...user, currentPlan: subData.plan };
+            }
+          } catch (error) {
+            console.error(`Error fetching subscription for user ${user.id}:`, error);
+          }
+          return user;
+        }));
+        setUsers(usersWithPlans);
       }
 
       if (plansRes.ok) {

@@ -17,6 +17,7 @@ import TabBar, { Tab } from '../components/TabBar';
 import CommandPalette from '../components/CommandPalette';
 import Terminal from '../components/Terminal';
 import SettingsPanel from '../components/SettingsPanel';
+import AuthNavigation from '../components/AuthNavigation';
 import type { Settings as SettingsType } from '../components/SettingsPanel';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DiffPreview from '../components/DiffPreview';
@@ -407,7 +408,10 @@ export default function IDEWorkspace() {
 
   return (
     <ErrorBoundary>
-      <div className="h-screen w-screen bg-cursor-base text-cursor-text flex flex-col overflow-hidden">
+      <div className="h-screen w-screen bg-[#0d1117] text-cursor-text flex flex-col overflow-hidden">
+        {/* Header */}
+        <AuthNavigation />
+        
         {/* Command Palette */}
         {showCommandPalette && (
           <CommandPalette

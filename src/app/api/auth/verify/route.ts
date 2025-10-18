@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
         name: user.name,
         avatar: user.avatar,
         isAdmin: user.isAdmin,
+        githubUsername: user.githubUsername,
       },
     });
   } catch (error) {

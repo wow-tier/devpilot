@@ -9,6 +9,12 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "AI Code Agent",
   description: "AI-powered IDE for modern developers",
+  icons: {
+    icon: [
+      { url: '/uploads/site/favicon.png', type: 'image/png' },
+      { url: '/favicon.ico' },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -18,9 +24,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link rel="icon" href="/uploads/site/favicon.png" type="image/png" />
-      </head>
       <body className={inter.className}>{children}</body>
     </html>
   );

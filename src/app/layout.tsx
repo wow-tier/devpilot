@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./styles/globals.css";
+import "./styles/animations.css";
 
-const inter = Inter({ 
-  subsets: ["latin"],
-  display: 'swap',
-  variable: '--font-inter',
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AI Code Agent - Intelligent Development Workspace",
-  description: "An AI-powered code development workspace that helps you build and modify code through natural language",
+  title: "AI Code Agent",
+  description: "AI-powered IDE for modern developers",
+  icons: {
+    icon: "/uploads/site/favicon.png",
+  },
 };
 
 export default function RootLayout({
@@ -19,13 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
-      <body 
-        className={`min-h-screen bg-cursor-base text-cursor-text antialiased ${inter.className}`}
-        suppressHydrationWarning
-      >
-        {children}
-      </body>
+    <html lang="en">
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }

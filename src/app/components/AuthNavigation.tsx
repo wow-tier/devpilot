@@ -1,111 +1,133 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Code2, ArrowRight, Settings, LogOut, LayoutDashboard } from 'lucide-react';
-import { AccentButton } from './ui';
+import { Code2, Search } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 interface AuthNavigationProps {
   transparent?: boolean;
 }
 
-export default function AuthNavigation({ transparent = false }: AuthNavigationProps) {
+interface SiteSettings {
+  siteName: string;
+  logoUrl: string | null;
+}
+
+export default function AuthNavigation({ }: AuthNavigationProps) {
   const { user, loading, isAuthenticated, logout } = useAuth();
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({ siteName: 'AI Code Agent', logoUrl: null });
+
+  useEffect(() => {
+    fetch('/api/admin/site-settings')
+      .then(res => res.json())
+      .then(data => setSiteSettings(data.settings))
+      .catch(() => {});
+  }, []);
 
   const handleLogout = () => {
     logout();
   };
 
   return (
-    <nav className={`border-b border-cursor-border sticky top-0 z-50 backdrop-blur-xl ${
-      transparent ? 'bg-cursor-surface/80' : 'bg-cursor-surface'
-    }`}>
-      <div className="max-w-7xl mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link href={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-accent-gradient rounded-cursor-md flex items-center justify-center shadow-cursor-md">
-                <Code2 className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-cursor-text">AI Code Agent</h1>
+    <nav className="bg-[#010409] border-b border-[#21262d] sticky top-0 z-50">
+      <div className="max-w-[1280px] mx-auto px-4 md:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center gap-4">
+            <Link href={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              {siteSettings.logoUrl ? (
+                <Image 
+                  src={siteSettings.logoUrl} 
+                  alt={siteSettings.siteName}
+                  width={32}
+                  height={32}
+                  className="rounded-md"
+                />
+              ) : (
+                <div className="w-8 h-8 bg-white rounded-md flex items-center justify-center">
+                  <Code2 className="w-5 h-5 text-black" />
+                </div>
+              )}
+              <span className="text-[15px] font-semibold text-white">{siteSettings.siteName}</span>
             </Link>
             {!loading && !isAuthenticated && (
-              <div className="hidden md:flex items-center gap-6">
-                <a href="#features" className="text-sm font-medium text-cursor-text-muted hover:text-cursor-text transition-colors">
+              <div className="hidden md:flex items-center gap-1 ml-4">
+                <a href="#features" className="px-3 py-2 text-[13px] font-medium text-[#7d8590] hover:text-white transition-colors">
                   Features
                 </a>
-                <Link href="/pricing" className="text-sm font-medium text-cursor-text-muted hover:text-cursor-text transition-colors">
+                <Link href="/pricing" className="px-3 py-2 text-[13px] font-medium text-[#7d8590] hover:text-white transition-colors">
                   Pricing
                 </Link>
-                <a href="#" className="text-sm font-medium text-cursor-text-muted hover:text-cursor-text transition-colors">
+                <a href="#" className="px-3 py-2 text-[13px] font-medium text-[#7d8590] hover:text-white transition-colors">
                   Docs
                 </a>
               </div>
             )}
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {loading ? (
-              <div className="w-8 h-8 border-2 border-accent-blue border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-[#7d8590] border-t-transparent rounded-full animate-spin" />
             ) : isAuthenticated && user ? (
               <>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-cursor-surface-hover rounded-cursor-sm border border-cursor-border">
-                  {user.avatar ? (
-                    <Image 
-                      src={user.avatar} 
-                      alt="Profile" 
-                      width={28}
-                      height={28}
-                      className="rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 bg-accent-gradient rounded-full flex items-center justify-center text-white text-xs font-semibold">
-                      {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
-                    </div>
-                  )}
-                  <span className="text-sm font-medium text-cursor-text">
-                    {user.name || user.email}
-                  </span>
-                </div>
+                <button className="p-2 text-[#7d8590] hover:text-white transition-colors">
+                  <Search className="w-5 h-5" />
+                </button>
 
                 <Link
                   href="/dashboard"
-                  className="p-2 text-cursor-text-muted hover:text-cursor-text hover:bg-cursor-surface-hover rounded-cursor-sm transition-all"
+                  className="px-3 py-1.5 text-[13px] font-medium text-[#c9d1d9] hover:text-white transition-colors"
                   title="Dashboard"
                 >
-                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
                 </Link>
                 
                 <Link
                   href="/settings"
-                  className="p-2 text-cursor-text-muted hover:text-cursor-text hover:bg-cursor-surface-hover rounded-cursor-sm transition-all"
+                  className="px-3 py-1.5 text-[13px] font-medium text-[#7d8590] hover:text-white transition-colors"
                   title="Settings"
                 >
-                  <Settings className="w-4 h-4" />
+                  Settings
                 </Link>
+                
+                <div className="w-px h-6 bg-[#21262d] mx-2"></div>
+
+                <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  {user.avatar ? (
+                    <Image 
+                      src={user.avatar} 
+                      alt="Profile" 
+                      width={32}
+                      height={32}
+                      className="rounded-full object-cover border-2 border-[#21262d]"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                      {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                    </div>
+                  )}
+                </button>
                 
                 <button
                   onClick={handleLogout}
-                  className="p-2 text-cursor-text-muted hover:text-cursor-text hover:bg-cursor-surface-hover rounded-cursor-sm transition-all"
+                  className="px-3 py-1.5 text-[13px] font-medium text-[#7d8590] hover:text-white transition-colors"
                   title="Logout"
                 >
-                  <LogOut className="w-4 h-4" />
+                  Logout
                 </button>
               </>
             ) : (
               <>
                 <Link 
                   href="/login" 
-                  className="px-4 py-2 text-cursor-text-muted hover:text-cursor-text transition-colors font-medium text-sm"
+                  className="px-4 py-1.5 text-[13px] font-medium text-white hover:opacity-80 transition-opacity"
                 >
-                  Sign In
+                  Sign in
                 </Link>
-                <Link href="/login?signup=true">
-                  <AccentButton icon={<ArrowRight className="w-4 h-4" />}>
-                    Get Started
-                  </AccentButton>
+                <Link href="/login?signup=true" className="ml-2 px-4 py-1.5 bg-[#238636] hover:bg-[#2ea043] text-white text-[13px] font-medium rounded-md transition-colors">
+                  Sign up
                 </Link>
               </>
             )}

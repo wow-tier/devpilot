@@ -6,6 +6,7 @@ import Image from 'next/image';
 interface SiteSettings {
   siteName: string;
   logoUrl: string | null;
+  faviconUrl: string | null;
   tagline: string;
   supportEmail: string;
   primaryColor: string;
@@ -16,6 +17,7 @@ export default function SiteSettingsPanel() {
   const [settings, setSettings] = useState<SiteSettings>({
     siteName: 'AI Code Agent',
     logoUrl: null,
+    faviconUrl: null,
     tagline: 'The AI-powered IDE for modern developers',
     supportEmail: 'support@example.com',
     primaryColor: '#3b82f6',
@@ -87,9 +89,10 @@ export default function SiteSettingsPanel() {
     const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('logo', file);
+    formData.append('type', 'logo');
 
     try {
-      const response = await fetch('/api/admin/site-settings', {
+      const response = await fetch('/api/admin/site-settings/logo', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -105,6 +108,41 @@ export default function SiteSettingsPanel() {
     } catch (error) {
       console.error('Error uploading logo:', error);
       setError('Failed to upload logo');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError('');
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('logo', file);
+    formData.append('type', 'favicon');
+
+    try {
+      const response = await fetch('/api/admin/site-settings/logo', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSettings({ ...settings, faviconUrl: data.faviconUrl });
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Failed to upload favicon');
+      }
+    } catch (error) {
+      console.error('Error uploading favicon:', error);
+      setError('Failed to upload favicon');
     } finally {
       setUploading(false);
     }
@@ -133,52 +171,109 @@ export default function SiteSettingsPanel() {
         </div>
       )}
 
-      {/* Logo Section */}
+      {/* Logo & Favicon Section */}
       <GlassPanel className="p-6">
-        <h3 className="text-lg font-semibold text-cursor-text mb-4">Site Logo</h3>
+        <h3 className="text-lg font-semibold text-cursor-text mb-6">Site Branding</h3>
         
-        <div className="flex items-center gap-6">
-          <div className="w-32 h-32 bg-cursor-surface-hover rounded-cursor-md flex items-center justify-center border border-cursor-border">
-            {settings.logoUrl ? (
-              <Image 
-                src={settings.logoUrl} 
-                alt="Site Logo" 
-                width={128}
-                height={128}
-                className="object-contain"
-              />
-            ) : (
-              <Code2 className="w-12 h-12 text-accent-blue" />
-            )}
-          </div>
-          
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Logo */}
           <div>
-            <input
-              type="file"
-              id="logo-upload"
-              accept="image/png,image/svg+xml,image/jpeg"
-              onChange={handleLogoUpload}
-              className="hidden"
-            />
-            <label
-              htmlFor="logo-upload"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-cursor-sm border border-cursor-border bg-cursor-surface hover:bg-cursor-surface-hover text-cursor-text transition-all cursor-pointer"
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4" />
-                  Upload Logo
-                </>
-              )}
-            </label>
-            <p className="text-xs text-cursor-text-muted mt-2">
-              PNG, SVG or JPEG. Max 1MB. Recommended: 256x256px
-            </p>
+            <h4 className="text-sm font-semibold text-cursor-text mb-3">Logo</h4>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-24 h-24 bg-cursor-surface-hover rounded-cursor-md flex items-center justify-center border border-cursor-border">
+                {settings.logoUrl ? (
+                  <Image 
+                    src={settings.logoUrl} 
+                    alt="Site Logo" 
+                    width={96}
+                    height={96}
+                    className="object-contain"
+                    unoptimized
+                  />
+                ) : (
+                  <Code2 className="w-10 h-10 text-accent-blue" />
+                )}
+              </div>
+              
+              <div>
+                <input
+                  type="file"
+                  id="logo-upload"
+                  accept="image/png,image/svg+xml,image/jpeg"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="logo-upload"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-cursor-sm border border-cursor-border bg-cursor-surface hover:bg-cursor-surface-hover text-cursor-text transition-all cursor-pointer"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      Upload Logo
+                    </>
+                  )}
+                </label>
+                <p className="text-xs text-cursor-text-muted mt-2">
+                  PNG, SVG or JPEG. Max 1MB.<br/>Recommended: 256x256px
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Favicon */}
+          <div>
+            <h4 className="text-sm font-semibold text-cursor-text mb-3">Favicon</h4>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-24 h-24 bg-cursor-surface-hover rounded-cursor-md flex items-center justify-center border border-cursor-border">
+                {settings.faviconUrl ? (
+                  <Image 
+                    src={settings.faviconUrl} 
+                    alt="Favicon" 
+                    width={48}
+                    height={48}
+                    className="object-contain"
+                    unoptimized
+                  />
+                ) : (
+                  <Code2 className="w-8 h-8 text-accent-blue" />
+                )}
+              </div>
+              
+              <div>
+                <input
+                  type="file"
+                  id="favicon-upload"
+                  accept="image/png,image/x-icon"
+                  onChange={handleFaviconUpload}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="favicon-upload"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-cursor-sm border border-cursor-border bg-cursor-surface hover:bg-cursor-surface-hover text-cursor-text transition-all cursor-pointer"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      Upload Favicon
+                    </>
+                  )}
+                </label>
+                <p className="text-xs text-cursor-text-muted mt-2">
+                  PNG or ICO. Max 100KB.<br/>Recommended: 32x32px or 16x16px
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </GlassPanel>

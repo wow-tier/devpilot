@@ -10,7 +10,6 @@ import {
 import { GlassPanel, AccentButton, SectionHeader } from '../components/ui';
 import UsersTable from './components/UsersTable';
 import PlansTable from './components/PlansTable';
-import ApiKeysTable from './components/ApiKeysTable';
 import SystemApiKeysTable from './components/SystemApiKeysTable';
 import SiteSettingsPanel from './components/SiteSettingsPanel';
 
@@ -193,7 +192,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteApiKey = async (id: string) => {
+  const _handleDeleteApiKey = async (id: string) => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
@@ -406,17 +405,6 @@ export default function AdminPage() {
               subtitle={`${plans.length} plans configured`}
             />
             <PlansTable plans={plans} onDelete={handleDeletePlan} onRefresh={loadData} />
-          </div>
-        )}
-
-        {/* API Keys Tab */}
-        {activeTab === 'apikeys' && (
-          <div className="space-y-6">
-            <SectionHeader
-              title="User API Keys"
-              subtitle={`${apiKeys.length} user-owned keys`}
-            />
-            <ApiKeysTable apiKeys={apiKeys} onDelete={handleDeleteApiKey} />
           </div>
         )}
 

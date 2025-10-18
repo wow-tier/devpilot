@@ -33,7 +33,16 @@ export default function GitPanel() {
 
   const loadGitStatus = async () => {
     try {
-      const response = await fetch('/api/git?action=status');
+      // Get repositoryId from URL params
+      const params = new URLSearchParams(window.location.search);
+      const repositoryId = params.get('repo');
+      
+      if (!repositoryId) return;
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/git?action=status&repositoryId=${repositoryId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await response.json();
       
       if (data.success) {
@@ -46,7 +55,16 @@ export default function GitPanel() {
 
   const loadCommitLog = async () => {
     try {
-      const response = await fetch('/api/git?action=log&count=5');
+      // Get repositoryId from URL params
+      const params = new URLSearchParams(window.location.search);
+      const repositoryId = params.get('repo');
+      
+      if (!repositoryId) return;
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/git?action=log&count=10&repositoryId=${repositoryId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await response.json();
       
       if (data.success) {

@@ -18,6 +18,7 @@ import CommandPalette from '../components/CommandPalette';
 import Terminal from '../components/Terminal';
 import SettingsPanel from '../components/SettingsPanel';
 import AuthNavigation from '../components/AuthNavigation';
+import GitPanel from '../components/GitPanel';
 import type { Settings as SettingsType } from '../components/SettingsPanel';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DiffPreview from '../components/DiffPreview';

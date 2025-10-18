@@ -1,13 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import simpleGit from 'simple-git';
+import { PrismaClient } from '@prisma/client';
+import { verifySession } from '@/app/lib/auth-db';
+import path from 'path';
+
+const prisma = new PrismaClient();
 
 // GET - Get git status
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const action = searchParams.get('action');
-    const repoPath = searchParams.get('repoPath') || process.cwd();
+    const repositoryId = searchParams.get('repositoryId');
     
+    // Verify authentication
+    const token = req.headers.get('authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const user = await verifySession(token);
+    if (!user) {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+    }
+    
+    // Get repository path
+    if (!repositoryId) {
+      return NextResponse.json({ error: 'Repository ID is required' }, { status: 400 });
+    }
+    
+    const repository = await prisma.repository.findFirst({
+      where: {
+        id: repositoryId,
+        userId: user.id
+      }
+    });
+    
+    if (!repository) {
+      return NextResponse.json({ error: 'Repository not found' }, { status: 404 });
+    }
+    
+    // Construct repository path
+    const repoPath = path.join(process.cwd(), 'user-repos', user.id, repository.name);
     const git = simpleGit(repoPath);
 
     switch (action) {
@@ -59,8 +93,38 @@ export async function GET(req: NextRequest) {
 // POST - Perform git operations
 export async function POST(req: NextRequest) {
   try {
-    const { action, message, branch, remote, repoPath } = await req.json();
-    const git = simpleGit(repoPath || process.cwd());
+    const { action, message, branch, remote, repositoryId } = await req.json();
+    
+    // Verify authentication
+    const token = req.headers.get('authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const user = await verifySession(token);
+    if (!user) {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+    }
+    
+    // Get repository path
+    if (!repositoryId) {
+      return NextResponse.json({ error: 'Repository ID is required' }, { status: 400 });
+    }
+    
+    const repository = await prisma.repository.findFirst({
+      where: {
+        id: repositoryId,
+        userId: user.id
+      }
+    });
+    
+    if (!repository) {
+      return NextResponse.json({ error: 'Repository not found' }, { status: 404 });
+    }
+    
+    // Construct repository path
+    const repoPath = path.join(process.cwd(), 'user-repos', user.id, repository.name);
+    const git = simpleGit(repoPath);
 
     switch (action) {
       case 'checkout': {

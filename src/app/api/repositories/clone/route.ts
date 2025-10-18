@@ -55,61 +55,28 @@ export async function POST(req: NextRequest) {
 
     // Create user-specific directory
     const userRepoDir = path.join(REPOS_BASE_DIR, user.id);
-    await fs.mkdir(userRepoDir, { recursive: true });
-
+    
     // Clone directory path
     const repoName = repository.name.replace(/[^a-zA-Z0-9-_]/g, '-');
     const clonePath = path.join(userRepoDir, repoName);
 
     console.log('Clone path:', clonePath);
 
-    // Check if already cloned
+    // Clean up any existing directory completely
     try {
-      const stat = await fs.stat(clonePath);
-      
-      if (stat.isDirectory()) {
-        console.log('Repository already exists, pulling latest...');
-        
-        try {
-          // Check if it's a valid git repository
-          const git = simpleGit(clonePath);
-          await git.status(); // This will throw if not a git repo
-          
-          // Pull latest changes
-          await git.fetch();
-          await git.pull();
-
-          // Update last accessed
-          await updateRepository(repositoryId, user.id, {
-            lastAccessedAt: new Date(),
-          });
-
-          console.log('Repository updated successfully');
-
-          return NextResponse.json({
-            success: true,
-            message: 'Repository updated',
-            path: clonePath,
-            repository,
-          });
-        } catch {
-          // Directory exists but not a valid git repo, remove it
-          console.log('Directory exists but is not a valid git repository, removing...');
-          await fs.rm(clonePath, { recursive: true, force: true });
-        }
-      }
+      await fs.rm(clonePath, { recursive: true, force: true });
+      console.log('Removed existing directory');
     } catch {
-      // Directory doesn't exist, continue to clone
-      console.log('Repository does not exist, cloning from GitHub...');
+      // Directory doesn't exist, that's fine
     }
+
+    // Ensure parent directory exists with proper permissions
+    await fs.mkdir(userRepoDir, { recursive: true, mode: 0o755 });
     
     // Clone repository
     const git = simpleGit();
     
     try {
-      // Ensure parent directory exists
-      await fs.mkdir(userRepoDir, { recursive: true });
-      
       await git.clone(repository.url, clonePath, [
         '--branch',
         repository.defaultBranch || 'main',
@@ -151,6 +118,14 @@ export async function POST(req: NextRequest) {
       });
     } catch (cloneError) {
       console.error('Git clone error:', cloneError);
+      
+      // Clean up failed clone attempt
+      try {
+        await fs.rm(clonePath, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+      
       throw new Error(`Failed to clone repository: ${cloneError instanceof Error ? cloneError.message : 'Unknown error'}`);
     }
   } catch (error) {

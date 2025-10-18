@@ -192,23 +192,6 @@ export default function AdminPage() {
     }
   };
 
-  const _handleDeleteApiKey = async (id: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    try {
-      const response = await fetch(`/api/admin/apikeys/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        setApiKeys(apiKeys.filter(k => k.id !== id));
-      }
-    } catch (error) {
-      console.error('Error deleting API key:', error);
-    }
-  };
 
   if (loading) {
     return (

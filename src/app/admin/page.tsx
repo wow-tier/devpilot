@@ -12,6 +12,7 @@ import UsersTable from './components/UsersTable';
 import PlansTable from './components/PlansTable';
 import ApiKeysTable from './components/ApiKeysTable';
 import SystemApiKeysTable from './components/SystemApiKeysTable';
+import SiteSettingsPanel from './components/SiteSettingsPanel';
 
 // ----------------- TYPES -----------------
 interface User {
@@ -77,7 +78,7 @@ interface Stats {
 export default function AdminPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'plans' | 'apikeys' | 'system'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'plans' | 'apikeys' | 'system' | 'site'>('overview');
   
   const [users, setUsers] = useState<User[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -243,7 +244,8 @@ export default function AdminPage() {
     { id: 'users' as const, label: 'Users', icon: Users },
     { id: 'plans' as const, label: 'Plans', icon: CreditCard },
     { id: 'apikeys' as const, label: 'User Keys', icon: Key },
-    { id: 'system' as const, label: 'System AI Keys', icon: Settings },
+    { id: 'system' as const, label: 'System AI Keys', icon: Key },
+    { id: 'site' as const, label: 'Site Settings', icon: Settings },
   ];
 
   return (
@@ -355,15 +357,30 @@ export default function AdminPage() {
             {/* Quick Actions */}
             <GlassPanel className="p-6">
               <h3 className="text-lg font-semibold text-cursor-text mb-4">Quick Actions</h3>
-              <div className="flex flex-wrap gap-3">
-                <AccentButton onClick={() => setActiveTab('users')} icon={<UserPlus className="w-4 h-4" />}>
-                  Manage Users
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <AccentButton onClick={() => setActiveTab('users')} icon={<UserPlus className="w-4 h-4" />} className="justify-start">
+                  <div className="text-left">
+                    <div className="font-semibold">Manage Users</div>
+                    <div className="text-xs opacity-75">View and manage all users</div>
+                  </div>
                 </AccentButton>
-                <AccentButton onClick={() => setActiveTab('plans')} variant="secondary" icon={<Plus className="w-4 h-4" />}>
-                  Manage Plans
+                <AccentButton onClick={() => setActiveTab('plans')} variant="secondary" icon={<Plus className="w-4 h-4" />} className="justify-start">
+                  <div className="text-left">
+                    <div className="font-semibold">Add/Edit Plans</div>
+                    <div className="text-xs opacity-75">Create subscription plans</div>
+                  </div>
                 </AccentButton>
-                <AccentButton onClick={() => setActiveTab('apikeys')} variant="secondary" icon={<Key className="w-4 h-4" />}>
-                  Manage API Keys
+                <AccentButton onClick={() => setActiveTab('system')} variant="secondary" icon={<Key className="w-4 h-4" />} className="justify-start">
+                  <div className="text-left">
+                    <div className="font-semibold">Configure AI Keys</div>
+                    <div className="text-xs opacity-75">Setup OpenAI, Claude, Grok</div>
+                  </div>
+                </AccentButton>
+                <AccentButton onClick={() => setActiveTab('site')} variant="secondary" icon={<Settings className="w-4 h-4" />} className="justify-start">
+                  <div className="text-left">
+                    <div className="font-semibold">Site Settings</div>
+                    <div className="text-xs opacity-75">Update logo and branding</div>
+                  </div>
                 </AccentButton>
               </div>
             </GlassPanel>
@@ -388,7 +405,7 @@ export default function AdminPage() {
               title="Subscription Plans"
               subtitle={`${plans.length} plans configured`}
             />
-            <PlansTable plans={plans} onDelete={handleDeletePlan} />
+            <PlansTable plans={plans} onDelete={handleDeletePlan} onRefresh={loadData} />
           </div>
         )}
 
@@ -411,6 +428,17 @@ export default function AdminPage() {
               subtitle="Configure AI providers for all users"
             />
             <SystemApiKeysTable keys={systemKeys} onRefresh={loadData} />
+          </div>
+        )}
+
+        {/* Site Settings Tab */}
+        {activeTab === 'site' && (
+          <div className="space-y-6">
+            <SectionHeader
+              title="Site Settings"
+              subtitle="Manage site logo, branding, and configuration"
+            />
+            <SiteSettingsPanel />
           </div>
         )}
       </div>

@@ -133,8 +133,178 @@ export default function PlansTable({ plans, onDelete, onRefresh }: PlansTablePro
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {plans.map((plan) => (
+    <div className="space-y-6">
+      {/* Add Plan Button */}
+      {!showForm && (
+        <div className="flex justify-end">
+          <AccentButton onClick={handleAdd} icon={<Plus className="w-4 h-4" />}>
+            Add New Plan
+          </AccentButton>
+        </div>
+      )}
+
+      {/* Add/Edit Form */}
+      {showForm && (
+        <GlassPanel className="p-6">
+          <h3 className="text-lg font-semibold text-cursor-text mb-4">
+            {editingPlan ? 'Edit Plan' : 'Add New Plan'}
+          </h3>
+
+          {error && (
+            <div className="mb-4 p-3 bg-danger/10 border border-danger/30 rounded-cursor-sm text-danger text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+            <div>
+              <label className="block text-sm font-semibold text-cursor-text mb-2">
+                Plan ID *
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                className="input-cursor w-full"
+                placeholder="free, pro, enterprise"
+                disabled={!!editingPlan}
+              />
+              <p className="text-xs text-cursor-text-muted mt-1">Unique identifier (lowercase, no spaces)</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-cursor-text mb-2">
+                Display Name *
+              </label>
+              <input
+                type="text"
+                value={formData.displayName}
+                onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                className="input-cursor w-full"
+                placeholder="Pro Plan"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-cursor-text mb-2">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="input-cursor w-full resize-none"
+                placeholder="Perfect for professional developers"
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-cursor-text mb-2">
+                Price ($) *
+              </label>
+              <input
+                type="number"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                className="input-cursor w-full"
+                min="0"
+                step="0.01"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-cursor-text mb-2">
+                Billing Interval *
+              </label>
+              <select
+                value={formData.interval}
+                onChange={(e) => setFormData({ ...formData, interval: e.target.value })}
+                className="input-cursor w-full"
+              >
+                <option value="month">Monthly</option>
+                <option value="year">Yearly</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-cursor-text mb-2">
+                Max Repositories
+              </label>
+              <input
+                type="number"
+                value={formData.maxRepositories}
+                onChange={(e) => setFormData({ ...formData, maxRepositories: parseInt(e.target.value) })}
+                className="input-cursor w-full"
+                min="-1"
+              />
+              <p className="text-xs text-cursor-text-muted mt-1">Use -1 for unlimited</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-cursor-text mb-2">
+                Max AI Requests/Month
+              </label>
+              <input
+                type="number"
+                value={formData.maxAIRequests}
+                onChange={(e) => setFormData({ ...formData, maxAIRequests: parseInt(e.target.value) })}
+                className="input-cursor w-full"
+                min="-1"
+              />
+              <p className="text-xs text-cursor-text-muted mt-1">Use -1 for unlimited</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-cursor-text mb-2">
+                Max Storage (MB)
+              </label>
+              <input
+                type="number"
+                value={formData.maxStorage}
+                onChange={(e) => setFormData({ ...formData, maxStorage: parseInt(e.target.value) })}
+                className="input-cursor w-full"
+                min="-1"
+              />
+              <p className="text-xs text-cursor-text-muted mt-1">Use -1 for unlimited</p>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  className="w-4 h-4 rounded border-cursor-border bg-cursor-surface-hover text-accent-blue focus:ring-accent-blue focus:ring-2"
+                />
+                <span className="text-sm font-semibold text-cursor-text">
+                  Active (visible to users)
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <AccentButton
+              onClick={handleSave}
+              disabled={saving}
+              icon={saving ? undefined : <Save className="w-4 h-4" />}
+            >
+              {saving ? 'Saving...' : editingPlan ? 'Update Plan' : 'Create Plan'}
+            </AccentButton>
+            <AccentButton
+              variant="secondary"
+              onClick={handleCancel}
+              icon={<X className="w-4 h-4" />}
+            >
+              Cancel
+            </AccentButton>
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Plans Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {plans.map((plan) => (
         <GlassPanel key={plan.id} className="p-6 hover:border-accent-blue/30 transition-all">
           <div className="flex items-start justify-between mb-4">
             <div>
@@ -144,15 +314,24 @@ export default function PlansTable({ plans, onDelete, onRefresh }: PlansTablePro
                 <span className="text-sm text-cursor-text-muted">/{plan.interval}</span>
               </div>
             </div>
-            {onDelete && (
+            <div className="flex gap-1">
               <button
-                onClick={() => handleDelete(plan.id, plan.displayName)}
-                className="p-2 text-cursor-text-muted hover:text-danger hover:bg-danger/10 rounded-cursor-sm transition-all"
-                title="Delete plan"
+                onClick={() => handleEdit(plan)}
+                className="p-2 text-cursor-text-muted hover:text-accent-blue hover:bg-accent-blue/10 rounded-cursor-sm transition-all"
+                title="Edit plan"
               >
-                <Trash2 className="w-4 h-4" />
+                <Edit className="w-4 h-4" />
               </button>
-            )}
+              {onDelete && (
+                <button
+                  onClick={() => handleDelete(plan.id, plan.displayName)}
+                  className="p-2 text-cursor-text-muted hover:text-danger hover:bg-danger/10 rounded-cursor-sm transition-all"
+                  title="Delete plan"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           {plan.description && (
@@ -186,7 +365,8 @@ export default function PlansTable({ plans, onDelete, onRefresh }: PlansTablePro
             </div>
           </div>
         </GlassPanel>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

@@ -40,3 +40,4 @@ next-env.d.ts
 
 # User repositories (SECURITY: Never commit user data!)
 /user-repos/
+ecosystem.config.js

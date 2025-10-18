@@ -25,8 +25,10 @@ export default function AuthNavigation({ }: AuthNavigationProps) {
     logoWidth: 48,
     logoHeight: 48
   });
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const loadSettings = async () => {
       try {
         const res = await fetch('/api/admin/site-settings');
@@ -39,8 +41,23 @@ export default function AuthNavigation({ }: AuthNavigationProps) {
       }
     };
     loadSettings();
-    // Only load once on mount, no polling needed
   }, []);
+
+  // Prevent hydration mismatch by not rendering dynamic content until mounted
+  if (!mounted) {
+    return (
+      <nav className="bg-[#010409] border-b border-[#30363d] sticky top-0 z-50 backdrop-blur-sm">
+        <div className="max-w-[1280px] mx-auto px-4 md:px-6">
+          <div className="flex items-center justify-between h-[64px]">
+            <div className="flex items-center gap-3">
+              <span className="text-[20px] font-bold text-white">AI Code Agent</span>
+            </div>
+            <div className="w-6 h-6"></div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   const handleLogout = () => {
     logout();

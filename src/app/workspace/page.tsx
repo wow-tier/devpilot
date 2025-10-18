@@ -136,59 +136,6 @@ export default function IDEWorkspace() {
     }
   }, []);
 
-  // Wrap cloneRepository in useCallback with proper dependencies
-  const cloneRepository = useCallback(async (repositoryId: string) => {
-    if (isCloning) {
-      console.log('Clone already in progress, skipping...');
-      return;
-    }
-
-    setIsCloning(true);
-    setCloneError('');
-
-    try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        setCloneError('Please login to clone repositories');
-        setIsCloning(false);
-        return;
-      }
-
-      console.log('Starting clone for repository:', repositoryId);
-
-      const response = await fetch('/api/repositories/clone', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ repositoryId }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        console.log('Clone successful:', data);
-        setRepoPath(data.path);
-        setShowWelcome(false);
-        // Wait a bit for filesystem to sync
-        await new Promise(resolve => setTimeout(resolve, 500));
-        loadFiles('.');
-        loadGitStatus(data.path);
-      } else {
-        console.error('Clone failed:', data);
-        setCloneError(data.error || 'Failed to clone repository');
-        setShowWelcome(true);
-      }
-    } catch (error) {
-      console.error('Error cloning repository:', error);
-      setCloneError('Failed to clone repository. Please try again.');
-      setShowWelcome(true);
-    } finally {
-      setIsCloning(false);
-    }
-  }, [isCloning, loadFiles, loadGitStatus]);
 
   // Load available AI providers
   useEffect(() => {
@@ -251,7 +198,8 @@ export default function IDEWorkspace() {
           const repo = data.repository;
           setCurrentRepo(repo);
           setGitBranch(repo.defaultBranch || 'main');
-          cloneRepository(repo.id);
+          setShowWelcome(false);
+          loadFiles('.');
         } else {
           setShowWelcome(true);
           setCloneError('Repository not found or access denied');
@@ -264,7 +212,7 @@ export default function IDEWorkspace() {
     };
 
     fetchRepository();
-  }, [cloneRepository]);
+  }, [loadFiles]);
 
   // Wrap handleSaveFile in useCallback
   const handleSaveFile = useCallback(async () => {

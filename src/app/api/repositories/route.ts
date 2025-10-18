@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserRepositories, createRepository } from '@/app/lib/repository-db';
 import { verifySession } from '@/app/lib/auth-db';
+import simpleGit from 'simple-git';
+import path from 'path';
+import fs from 'fs/promises';
 
 export async function GET(req: NextRequest) {
   try {
@@ -76,6 +79,40 @@ export async function POST(req: NextRequest) {
     });
 
     console.log('Repository created in database:', repository);
+
+    // Clone repository immediately
+    try {
+      const userRepoDir = path.join(process.cwd(), 'user-repos', user.id);
+      await fs.mkdir(userRepoDir, { recursive: true });
+
+      const repoName = repository.name.replace(/[^a-zA-Z0-9-_]/g, '-');
+      const clonePath = path.join(userRepoDir, repoName);
+
+      console.log('Cloning repository to:', clonePath);
+
+      const git = simpleGit();
+      await git.clone(repository.url, clonePath, [
+        '--branch',
+        repository.defaultBranch || 'main',
+        '--single-branch',
+      ]);
+
+      const repoGit = simpleGit(clonePath);
+      
+      if (user.name) {
+        await repoGit.addConfig('user.name', user.name);
+      }
+      if (user.email) {
+        await repoGit.addConfig('user.email', user.email);
+      }
+
+      const featureBranch = `ai-agent-${Date.now()}`;
+      await repoGit.checkoutLocalBranch(featureBranch);
+
+      console.log('Repository cloned and ready');
+    } catch (cloneError) {
+      console.error('Failed to clone during creation:', cloneError);
+    }
 
     return NextResponse.json({
       success: true,

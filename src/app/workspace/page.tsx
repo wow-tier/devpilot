@@ -21,6 +21,7 @@ import SettingsPanel from '../components/SettingsPanel';
 import type { Settings as SettingsType } from '../components/SettingsPanel';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DiffPreview from '../components/DiffPreview';
+import Link from 'next/link';
 
 const CodeEditor = dynamic(() => import('../components/Editor'), {
   ssr: false,
@@ -452,7 +453,9 @@ export default function IDEWorkspace() {
         {/* Header */}
         <header className="h-12 border-b border-cursor-border bg-cursor-surface flex items-center justify-between px-4 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <Code2 className="w-5 h-5 text-accent-blue" />
+            <Link href="/dashboard">
+            <Code2 className="w-5 h-5 text-accent-blue cursor-pointer" />
+            </Link>
             {currentRepo && (
               <>
                 <span className="text-cursor-text-secondary">/</span>

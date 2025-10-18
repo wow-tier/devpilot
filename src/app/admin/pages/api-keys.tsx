@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import ApiKeysTable from './../components/ApiKeysTable';
 import ApiKeyForm from './../components/ApiKeyForm';
 
-interface ApiKey {
+export interface ApiKey {
   id: number;
   key: string;
   owner_id: number;

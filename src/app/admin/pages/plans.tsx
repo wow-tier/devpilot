@@ -1,3 +1,4 @@
+'use client';
 import { useState, useEffect } from 'react';
 import PlansTable from './../components/PlansTable';
 import PlanForm from './../components/PlanForm';
@@ -15,13 +16,10 @@ const PLANS_API_ENDPOINT = `${API_URL}/api/plans`;
 async function getPlans(): Promise<Plan[]> {
   try {
     const response = await fetch(PLANS_API_ENDPOINT);
-    if (!response.ok) {
-      throw new Error('Failed to fetch plans');
-    }
+    if (!response.ok) throw new Error('Failed to fetch plans');
     return response.json();
   } catch (error) {
-    console.error('Error fetching plans:', error);
-    // TODO: Handle the error appropriately
+    console.error(error);
     return [];
   }
 }
@@ -30,33 +28,23 @@ async function addPlan(plan: { name: string; price: number }): Promise<Plan | nu
   try {
     const response = await fetch(PLANS_API_ENDPOINT, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(plan),
     });
-    if (!response.ok) {
-      throw new Error('Failed to add plan');
-    }
+    if (!response.ok) throw new Error('Failed to add plan');
     return response.json();
   } catch (error) {
-    console.error('Error adding plan:', error);
-    // TODO: Handle the error appropriately
+    console.error(error);
     return null;
   }
 }
 
 async function deletePlan(id: number): Promise<void> {
   try {
-    const response = await fetch(`${PLANS_API_ENDPOINT}/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      throw new Error('Failed to delete plan');
-    }
+    const response = await fetch(`${PLANS_API_ENDPOINT}/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Failed to delete plan');
   } catch (error) {
-    console.error('Error deleting plan:', error);
-    // TODO: Handle the error appropriately
+    console.error(error);
   }
 }
 
@@ -65,20 +53,17 @@ export default function PlansPage() {
   const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
-    async function fetchPlans() {
-      const fetchedPlans = await getPlans();
-      setPlans(fetchedPlans);
-    }
-    fetchPlans();
+    getPlans().then(setPlans);
   }, []);
 
-  const handleAddPlan = async (name: string, price: number) => {
-    const newPlan = await addPlan({ name, price });
-    if (newPlan) {
-      setPlans([...plans, newPlan]);
-      setIsAdding(false);
-    }
-  };
+  // Now handleAddPlan accepts a single object
+ const handleAddPlan = async (plan: { name: string; price: number }) => {
+  const newPlan = await addPlan(plan);
+  if (newPlan) {
+    setPlans([...plans, newPlan]);
+    setIsAdding(false);
+  }
+};
 
   const handleDeletePlan = async (id: number) => {
     await deletePlan(id);
@@ -88,10 +73,9 @@ export default function PlansPage() {
   return (
     <div>
       <h1>Plans</h1>
-      {isAdding && (
+      {isAdding ? (
         <PlanForm onAdd={handleAddPlan} />
-      )}
-      {!isAdding && (
+      ) : (
         <button onClick={() => setIsAdding(true)}>Add Plan</button>
       )}
       <PlansTable plans={plans} onDelete={handleDeletePlan} />

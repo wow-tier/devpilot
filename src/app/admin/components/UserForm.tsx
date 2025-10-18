@@ -6,7 +6,7 @@ interface UserFormProps {
     name: string;
     email: string;
     isAdmin: boolean;
-  };
+  }| null; // <-- allow null
   onSave: (user: {
     id?: number;
     name: string;

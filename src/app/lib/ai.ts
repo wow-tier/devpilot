@@ -29,7 +29,8 @@ export class AIAgent {
   /** Main entry: process user prompt, get AI response, apply changes, commit & push */
   async processPrompt(
     userPrompt: string,
-    files: Record<string, string> = {}
+    files: Record<string, string> = {},
+    provider: string = 'openai'
   ): Promise<AgentResponse> {
     try {
       // Add user message to history
@@ -47,8 +48,12 @@ export class AIAgent {
         ...this.context.chatHistory.slice(-10), // last 10 messages
       ];
 
-      const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
       let aiResponse = '';
+
+      // For now, all providers use OpenAI-compatible API
+      // In production, you would implement provider-specific logic
+      // and fetch the API key from the system keys
+      const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
 
       if (model.startsWith('gpt-5')) {
         // Responses API
@@ -63,7 +68,7 @@ export class AIAgent {
         });
         aiResponse = response.output_text || '';
       } else {
-        // Chat API
+        // Chat API - works for OpenAI, Claude, and Grok with appropriate SDKs
         const response = await openai.chat.completions.create({
           model,
           messages: messages.map(msg => ({
@@ -75,6 +80,14 @@ export class AIAgent {
         });
         aiResponse = response.choices[0]?.message?.content || '';
       }
+
+      // Note: Provider parameter is accepted but not yet fully implemented
+      // To fully implement:
+      // 1. Import provider-specific SDKs (Anthropic for Claude, xAI for Grok)
+      // 2. Fetch the system API key for the selected provider
+      // 3. Use provider-specific API calls
+      console.log(`Using provider: ${provider}`);
+
 
       // Add AI response to history
       this.context.chatHistory.push({

@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, User, FolderGit2, Sparkles, Palette,
-  Code2, Save, ExternalLink, Loader2, CheckCircle
+  User, FolderGit2, Sparkles, Palette,
+  Save, ExternalLink, Loader2, CheckCircle
 } from 'lucide-react';
 import { GlassPanel, AccentButton, SectionHeader } from '../components/ui';
 import AuthNavigation from '../components/AuthNavigation';

@@ -42,19 +42,6 @@ interface Plan {
   };
 }
 
-interface ApiKey {
-  id: string;
-  name: string;
-  provider: string;
-  isActive: boolean;
-  createdAt: string;
-  user: {
-    id: string;
-    email: string;
-    name?: string;
-  };
-}
-
 interface SystemApiKey {
   id: string;
   provider: string;
@@ -77,7 +64,7 @@ interface Stats {
 export default function AdminPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'plans' | 'apikeys' | 'system' | 'site'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'plans' | 'system' | 'site'>('overview');
   
   const [users, setUsers] = useState<User[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -216,7 +203,6 @@ export default function AdminPage() {
     { id: 'overview' as const, label: 'Overview', icon: Activity },
     { id: 'users' as const, label: 'Users', icon: Users },
     { id: 'plans' as const, label: 'Plans', icon: CreditCard },
-    { id: 'apikeys' as const, label: 'User Keys', icon: Key },
     { id: 'system' as const, label: 'System AI Keys', icon: Key },
     { id: 'site' as const, label: 'Site Settings', icon: Settings },
   ];

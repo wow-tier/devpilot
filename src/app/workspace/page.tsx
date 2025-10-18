@@ -89,53 +89,6 @@ export default function IDEWorkspace() {
   const activeContent = activeTab ? fileContents[activeTab.path] || '' : '';
   const [, setFiles] = useState<{ name: string; isDirectory: boolean }[]>([]);
 
-  // Wrap loadFiles in useCallback
-  const loadFiles = useCallback(async (directory = '.') => {
-    if (!currentRepo) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const queryParams = new URLSearchParams();
-      queryParams.append('repositoryId', currentRepo.id);
-      queryParams.append('directory', directory);
-      
-      const url = `/api/files?${queryParams.toString()}`;
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-
-      if (response.ok) {
-        setFiles(data.files || []);
-        setShowWelcome(false);
-      } else if (response.status === 404) {
-        // Repository directory not found
-        console.error('Repository directory not found:', data.error);
-        setShowWelcome(true);
-      }
-    } catch (error) {
-      console.error('Error loading files:', error);
-    }
-  }, [currentRepo]);
-
-  // Wrap loadGitStatus in useCallback
-  const loadGitStatus = useCallback(async (path: string) => {
-    try {
-      const queryParams = new URLSearchParams();
-      if (path) queryParams.append('repoPath', path);
-      
-      const response = await fetch(`/api/git?${queryParams.toString()}`);
-      const data = await response.json();
-      
-      if (response.ok) {
-        setGitBranch(data.currentBranch);
-      }
-    } catch (error) {
-      console.error('Error loading Git status:', error);
-    }
-  }, []);
 
 
   // Load available AI providers
@@ -229,7 +182,6 @@ export default function IDEWorkspace() {
     };
 
     fetchRepository();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 
   // Wrap handleSaveFile in useCallback

@@ -81,7 +81,6 @@ export default function AdminPage() {
   
   const [users, setUsers] = useState<User[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [systemKeys, setSystemKeys] = useState<SystemApiKey[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   

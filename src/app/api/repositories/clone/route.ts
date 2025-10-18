@@ -7,9 +7,6 @@ import fs from 'fs/promises';
 
 const REPOS_BASE_DIR = path.join(process.cwd(), 'user-repos');
 
-// Simple in-memory lock to prevent concurrent clones
-const cloneLocks = new Map<string, Promise<unknown>>();
-
 export async function POST(req: NextRequest) {
   try {
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
@@ -58,123 +55,90 @@ export async function POST(req: NextRequest) {
 
     // Create user-specific directory
     const userRepoDir = path.join(REPOS_BASE_DIR, user.id);
-    
+    await fs.mkdir(userRepoDir, { recursive: true });
+
     // Clone directory path
     const repoName = repository.name.replace(/[^a-zA-Z0-9-_]/g, '-');
     const clonePath = path.join(userRepoDir, repoName);
-    const lockKey = `${user.id}:${repositoryId}`;
 
     console.log('Clone path:', clonePath);
 
-    // Check if clone is already in progress
-    if (cloneLocks.has(lockKey)) {
-      console.log('Clone already in progress, waiting...');
-      try {
-        await cloneLocks.get(lockKey);
-        // Clone completed by another request, return success
-        return NextResponse.json({
-          success: true,
-          message: 'Repository ready',
-          path: clonePath,
-          repository,
-        });
-      } catch (error) {
-        // Previous clone failed, we'll try again
-        console.log('Previous clone failed, retrying...');
-      }
+    // Check if already exists and is valid
+    try {
+      await fs.access(clonePath);
+      const git = simpleGit(clonePath);
+      await git.status();
+      
+      console.log('Repository already exists and is valid');
+      
+      await updateRepository(repositoryId, user.id, {
+        lastAccessedAt: new Date(),
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Repository ready',
+        path: clonePath,
+        repository,
+      });
+    } catch {
+      // Doesn't exist or invalid, clone it
+      console.log('Cloning repository...');
     }
 
-    // Create lock promise
-    const clonePromise = (async () => {
-      try {
-        // Ensure parent directory exists with proper permissions
-        await fs.mkdir(userRepoDir, { recursive: true, mode: 0o755 });
+    // Remove any partial/broken clone
+    try {
+      await fs.rm(clonePath, { recursive: true, force: true });
+    } catch {
+      // Ignore
+    }
+    
+    // Clone repository
+    const git = simpleGit();
+    
+    try {
+      await git.clone(repository.url, clonePath, [
+        '--branch',
+        repository.defaultBranch || 'main',
+        '--single-branch',
+      ]);
 
-        // Clean up any existing directory and locks completely
-        try {
-          await fs.rm(clonePath, { recursive: true, force: true });
-          console.log('Removed existing directory');
-          // Wait a bit for filesystem to sync
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } catch {
-          // Directory doesn't exist, that's fine
-        }
-        
-        // Clone repository
-        const git = simpleGit();
-        
-        await git.clone(repository.url, clonePath, [
-          '--branch',
-          repository.defaultBranch || 'main',
-          '--single-branch',
-          '--depth',
-          '1',
-        ]);
+      console.log('Repository cloned successfully');
 
-        console.log('Repository cloned successfully from:', repository.url);
-
-        // Configure git for this repository
-        const repoGit = simpleGit(clonePath);
-        
-        // Set user config if available
-        if (user.name) {
-          await repoGit.addConfig('user.name', user.name);
-        }
-        if (user.email) {
-          await repoGit.addConfig('user.email', user.email);
-        }
-
-        // Create a feature branch for AI agent work
-        const featureBranch = `ai-agent-${Date.now()}`;
-        await repoGit.checkoutLocalBranch(featureBranch);
-
-        console.log(`Created and checked out feature branch: ${featureBranch}`);
-
-        // Update repository with local path and feature branch
-        await updateRepository(repositoryId, user.id, {
-          lastAccessedAt: new Date(),
-        });
-
-        return {
-          success: true,
-          message: 'Repository cloned successfully',
-          path: clonePath,
-          repository,
-          featureBranch,
-        };
-      } catch (cloneError) {
-        console.error('Git clone error:', cloneError);
-        
-        // Clean up failed clone attempt thoroughly
-        try {
-          await fs.rm(clonePath, { recursive: true, force: true });
-          // Clean up any lock files
-          const lockFiles = await fs.readdir(path.join(clonePath, '.git')).catch(() => []);
-          for (const file of lockFiles) {
-            if (file.endsWith('.lock')) {
-              await fs.unlink(path.join(clonePath, '.git', file)).catch(() => {});
-            }
-          }
-        } catch {
-          // Ignore cleanup errors
-        }
-        
-        throw new Error(`Failed to clone repository: ${cloneError instanceof Error ? cloneError.message : 'Unknown error'}`);
-      } finally {
-        // Remove lock
-        cloneLocks.delete(lockKey);
+      const repoGit = simpleGit(clonePath);
+      
+      if (user.name) {
+        await repoGit.addConfig('user.name', user.name);
       }
-    })();
-
-    // Store lock
-    cloneLocks.set(lockKey, clonePromise);
-
-      try {
-        const result = await clonePromise;
-        return NextResponse.json(result);
-      } catch (err) {
-        throw err;
+      if (user.email) {
+        await repoGit.addConfig('user.email', user.email);
       }
+
+      const featureBranch = `ai-agent-${Date.now()}`;
+      await repoGit.checkoutLocalBranch(featureBranch);
+
+      await updateRepository(repositoryId, user.id, {
+        lastAccessedAt: new Date(),
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Repository cloned successfully',
+        path: clonePath,
+        repository,
+        featureBranch,
+      });
+    } catch (cloneError) {
+      console.error('Git clone error:', cloneError);
+      
+      try {
+        await fs.rm(clonePath, { recursive: true, force: true });
+      } catch {
+        // Ignore
+      }
+      
+      throw new Error(`Failed to clone repository: ${cloneError instanceof Error ? cloneError.message : 'Unknown error'}`);
+    }
   } catch (error) {
     console.error('Error cloning repository:', error);
     

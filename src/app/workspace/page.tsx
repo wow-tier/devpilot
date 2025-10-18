@@ -453,13 +453,16 @@ export default function IDEWorkspace() {
         {/* Header */}
         <header className="h-12 border-b border-cursor-border bg-cursor-surface flex items-center justify-between px-4 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard">
-            <Code2 className="w-5 h-5 text-accent-blue cursor-pointer" />
+            <Link href="/dashboard" title="Back to Dashboard">
+            <Code2 className="w-5 h-5 text-accent-blue cursor-pointer hover:text-accent-purple transition-colors" />
             </Link>
             {currentRepo && (
               <>
                 <span className="text-cursor-text-secondary">/</span>
-                <span className="text-sm font-medium text-cursor-text">{currentRepo.name}</span>
+                <div className="flex items-center gap-2 px-2 py-1 bg-cursor-surface-hover rounded-cursor-sm">
+                  <FolderGit2 className="w-4 h-4 text-accent-blue" />
+                  <span className="text-sm font-medium text-cursor-text">{currentRepo.name}</span>
+                </div>
               </>
             )}
             {activeTab && (
@@ -577,7 +580,7 @@ export default function IDEWorkspace() {
           {showSidebar && (
             <div className="w-64 border-r border-cursor-border bg-cursor-surface flex-shrink-0">
               <div className="h-full flex flex-col">
-                <div className="h-10 border-b border-cursor-border flex items-center justify-between px-3">
+                <div className="h-10 border-b border-cursor-border flex items-center justify-between px-3 bg-cursor-surface-hover">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-cursor-text-secondary">
                     {activeActivity === 'files' && 'Explorer'}
                     {activeActivity === 'search' && 'Search'}
@@ -585,7 +588,8 @@ export default function IDEWorkspace() {
                   </h3>
                   <button
                     onClick={() => setShowSidebar(false)}
-                    className="text-cursor-text-muted hover:text-cursor-text"
+                    className="text-cursor-text-muted hover:text-cursor-text transition-colors"
+                    title="Close sidebar"
                   >
                     <PanelLeftClose className="w-4 h-4" />
                   </button>
@@ -647,12 +651,31 @@ export default function IDEWorkspace() {
                   />
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-cursor-text-muted">
-                  <div className="text-6xl mb-6 opacity-40">📝</div>
+                <div className="flex flex-col items-center justify-center h-full text-cursor-text-muted p-8">
+                  <div className="w-20 h-20 bg-cursor-surface-hover rounded-cursor-lg flex items-center justify-center mb-6">
+                    <FileText className="w-10 h-10 text-accent-blue opacity-50" />
+                  </div>
                   <h3 className="text-xl font-semibold text-cursor-text mb-3">No file selected</h3>
-                  <p className="text-cursor-text-secondary text-center max-w-md">
-                    Choose a file from the explorer to start editing
+                  <p className="text-cursor-text-secondary text-center max-w-md mb-6">
+                    Choose a file from the explorer to start editing, or use the AI assistant to generate new code
                   </p>
+                  <div className="flex gap-3">
+                    <AccentButton 
+                      variant="secondary" 
+                      size="sm"
+                      onClick={() => setActiveActivity('files')}
+                      icon={<Files className="w-4 h-4" />}
+                    >
+                      Browse Files
+                    </AccentButton>
+                    <AccentButton 
+                      size="sm"
+                      onClick={() => setShowRightPanel(true)}
+                      icon={<MessageSquare className="w-4 h-4" />}
+                    >
+                      Open AI Chat
+                    </AccentButton>
+                  </div>
                 </div>
               )}
             </div>

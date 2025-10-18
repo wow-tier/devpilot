@@ -4,9 +4,9 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-export default function Layout({ children }: LayoutProps) {
+export default function AdminLayout({ children }: LayoutProps) {
   return (
-    <div className="admin-layout p-4">
+    <div className="min-h-screen bg-cursor-base">
       {children}
     </div>
   );

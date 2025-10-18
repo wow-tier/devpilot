@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, User, FolderGit2, Sparkles, Palette,
-  Code2, Save, ExternalLink
+  Code2, Save, ExternalLink, Loader2, CheckCircle
 } from 'lucide-react';
 import { GlassPanel, AccentButton, SectionHeader } from '../components/ui';
 
@@ -73,12 +73,38 @@ export default function SettingsPage() {
     );
   }
 
+  const [savingAccount, setSavingAccount] = useState(false);
+  const [savingAI, setSavingAI] = useState(false);
+  const [savingAppearance, setSavingAppearance] = useState(false);
+  const [accountSuccess, setAccountSuccess] = useState(false);
+
   const tabs = [
     { id: 'account', label: 'Account', icon: User },
     { id: 'repositories', label: 'Repositories', icon: FolderGit2 },
     { id: 'ai', label: 'AI Settings', icon: Sparkles },
     { id: 'appearance', label: 'Appearance', icon: Palette },
   ];
+
+  const handleSaveAccount = async () => {
+    setSavingAccount(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setSavingAccount(false);
+    setAccountSuccess(true);
+    setTimeout(() => setAccountSuccess(false), 3000);
+  };
+
+  const handleSaveAI = async () => {
+    setSavingAI(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setSavingAI(false);
+  };
+
+  const handleSaveAppearance = async () => {
+    setSavingAppearance(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setSavingAppearance(false);
+  };
 
   return (
     <div className="min-h-screen bg-cursor-base">
@@ -143,7 +169,35 @@ export default function SettingsPage() {
                   <User className="w-5 h-5 text-accent-blue" />
                   Account Settings
                 </h2>
+                
+                {accountSuccess && (
+                  <div className="mb-6 p-4 bg-success/10 border border-success/30 rounded-cursor-sm text-success text-sm flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Settings saved successfully!</span>
+                  </div>
+                )}
+
                 <div className="space-y-6 max-w-xl">
+                  {/* Profile Picture */}
+                  <div>
+                    <label className="block text-sm font-semibold text-cursor-text mb-3">
+                      Profile Picture
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <div className="w-20 h-20 bg-accent-gradient rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                        {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <AccentButton size="sm" variant="secondary">
+                          Upload Photo
+                        </AccentButton>
+                        <p className="text-xs text-cursor-text-muted mt-2">
+                          JPG, PNG or GIF. Max 2MB.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-semibold text-cursor-text mb-2">
                       Email Address
@@ -171,10 +225,69 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  <div className="pt-4">
-                    <AccentButton icon={<Save className="w-4 h-4" />}>
-                      Save Changes
+                  <div>
+                    <label className="block text-sm font-semibold text-cursor-text mb-2">
+                      GitHub Username
+                    </label>
+                    <input
+                      type="text"
+                      className="input-cursor w-full"
+                      placeholder="your-github-username"
+                    />
+                    <p className="text-xs text-cursor-text-muted mt-1.5">
+                      Link your GitHub account for better integration
+                    </p>
+                  </div>
+
+                  {/* Notification Preferences */}
+                  <div className="pt-6 border-t border-cursor-border">
+                    <h3 className="text-base font-semibold text-cursor-text mb-4">
+                      Notification Preferences
+                    </h3>
+                    <div className="space-y-3">
+                      {[
+                        { id: 'email-updates', label: 'Email updates about new features' },
+                        { id: 'repository-alerts', label: 'Repository activity alerts' },
+                        { id: 'ai-suggestions', label: 'AI-generated code suggestions' },
+                        { id: 'security-alerts', label: 'Security and account alerts' }
+                      ].map((pref) => (
+                        <label key={pref.id} className="flex items-center gap-3 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            defaultChecked
+                            className="w-4 h-4 rounded border-cursor-border bg-cursor-surface-hover text-accent-blue focus:ring-accent-blue focus:ring-2"
+                          />
+                          <span className="text-sm text-cursor-text-secondary group-hover:text-cursor-text transition-colors">
+                            {pref.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex gap-3">
+                    <AccentButton 
+                      icon={savingAccount ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      onClick={handleSaveAccount}
+                      disabled={savingAccount}
+                    >
+                      {savingAccount ? 'Saving...' : 'Save Changes'}
                     </AccentButton>
+                  </div>
+
+                  {/* Danger Zone */}
+                  <div className="pt-6 border-t border-cursor-border">
+                    <h3 className="text-base font-semibold text-danger mb-4">
+                      Danger Zone
+                    </h3>
+                    <div className="p-4 border border-danger/30 rounded-cursor-sm bg-danger/5">
+                      <p className="text-sm text-cursor-text-secondary mb-3">
+                        Once you delete your account, there is no going back. Please be certain.
+                      </p>
+                      <AccentButton variant="secondary" size="sm" className="text-danger border-danger/30 hover:bg-danger/10">
+                        Delete Account
+                      </AccentButton>
+                    </div>
                   </div>
                 </div>
               </GlassPanel>
@@ -246,9 +359,56 @@ export default function SettingsPage() {
                     </p>
                   </div>
 
-                  <div className="pt-4">
-                    <AccentButton icon={<Save className="w-4 h-4" />}>
-                      Save AI Settings
+                  {/* Advanced AI Options */}
+                  <div className="pt-6 border-t border-cursor-border">
+                    <h3 className="text-base font-semibold text-cursor-text mb-4">
+                      Advanced Options
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-cursor-text mb-2">
+                          Temperature
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="2"
+                          step="0.1"
+                          defaultValue="0.7"
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-xs text-cursor-text-muted mt-1">
+                          <span>Precise</span>
+                          <span>Creative</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-cursor-text mb-2">
+                          Max Tokens
+                        </label>
+                        <input
+                          type="number"
+                          defaultValue="2048"
+                          className="input-cursor w-full"
+                          min="256"
+                          max="4096"
+                          step="256"
+                        />
+                        <p className="text-xs text-cursor-text-muted mt-1.5">
+                          Maximum length of generated responses
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex gap-3">
+                    <AccentButton 
+                      icon={savingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      onClick={handleSaveAI}
+                      disabled={savingAI}
+                    >
+                      {savingAI ? 'Saving...' : 'Save AI Settings'}
                     </AccentButton>
                   </div>
                 </div>
@@ -290,9 +450,40 @@ export default function SettingsPage() {
                     </select>
                   </div>
 
-                  <div className="pt-4">
-                    <AccentButton icon={<Save className="w-4 h-4" />}>
-                      Save Appearance
+                  {/* Accessibility */}
+                  <div className="pt-6 border-t border-cursor-border">
+                    <h3 className="text-base font-semibold text-cursor-text mb-4">
+                      Accessibility
+                    </h3>
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded border-cursor-border bg-cursor-surface-hover text-accent-blue focus:ring-accent-blue focus:ring-2"
+                        />
+                        <span className="text-sm text-cursor-text-secondary group-hover:text-cursor-text transition-colors">
+                          Enable high contrast mode
+                        </span>
+                      </label>
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded border-cursor-border bg-cursor-surface-hover text-accent-blue focus:ring-accent-blue focus:ring-2"
+                        />
+                        <span className="text-sm text-cursor-text-secondary group-hover:text-cursor-text transition-colors">
+                          Reduce animations
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex gap-3">
+                    <AccentButton 
+                      icon={savingAppearance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      onClick={handleSaveAppearance}
+                      disabled={savingAppearance}
+                    >
+                      {savingAppearance ? 'Saving...' : 'Save Appearance'}
                     </AccentButton>
                   </div>
                 </div>

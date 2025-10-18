@@ -265,6 +265,43 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <GlassPanel className="p-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-12 h-12 bg-accent-blue/10 rounded-cursor-md flex items-center justify-center">
+                <FolderGit2 className="w-6 h-6 text-accent-blue" />
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-cursor-text mb-1">{repositories.length}</div>
+            <div className="text-sm text-cursor-text-secondary">Total Repositories</div>
+          </GlassPanel>
+
+          <GlassPanel className="p-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-12 h-12 bg-accent-purple/10 rounded-cursor-md flex items-center justify-center">
+                <GitBranch className="w-6 h-6 text-accent-purple" />
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-cursor-text mb-1">
+              {repositories.filter(r => r.isActive).length}
+            </div>
+            <div className="text-sm text-cursor-text-secondary">Active Projects</div>
+          </GlassPanel>
+
+          <GlassPanel className="p-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-12 h-12 bg-success/10 rounded-cursor-md flex items-center justify-center">
+                <Clock className="w-6 h-6 text-success" />
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-cursor-text mb-1">
+              {repositories.filter(r => r.lastAccessedAt).length}
+            </div>
+            <div className="text-sm text-cursor-text-secondary">Recently Accessed</div>
+          </GlassPanel>
+        </div>
+
         <SectionHeader
           title="Workspaces"
           subtitle="Manage your AI-powered development environments"

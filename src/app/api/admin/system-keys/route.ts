@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     const keys = systemKeys.map(key => {
       const provider = key.action.replace('system_api_key_', '');
-      const metadata = key.metadata as any;
+      const metadata = key.metadata as Record<string, unknown>;
       
       return {
         id: key.id,
@@ -213,7 +213,7 @@ export async function getSystemApiKey(provider: string): Promise<string | null> 
       return null;
     }
 
-    const metadata = keyRecord.metadata as any;
+    const metadata = keyRecord.metadata as Record<string, unknown>;
     if (metadata?.isActive === false) {
       return null;
     }

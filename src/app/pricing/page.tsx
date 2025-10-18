@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  Code2, Check, Zap, ArrowRight, Sparkles, Crown, Rocket
+  Code2, Check, ArrowRight, Sparkles, Crown, Rocket
 } from 'lucide-react';
 import { GlassPanel, AccentButton } from '../components/ui';
 
@@ -30,6 +30,7 @@ export default function PricingPage() {
 
   useEffect(() => {
     loadPlans();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadPlans = async () => {
@@ -38,7 +39,7 @@ export default function PricingPage() {
       if (response.ok) {
         const data = await response.json();
         // Add icons and features to plans
-        const enhancedPlans = data.plans.map((plan: any) => ({
+        const enhancedPlans = data.plans.map((plan: Plan) => ({
           ...plan,
           features: getFeatures(plan.name),
           icon: getIcon(plan.name),
@@ -57,7 +58,7 @@ export default function PricingPage() {
     }
   };
 
-  const getIcon = (name: string) => {
+  const getIcon = (name: string): React.ReactNode => {
     switch (name.toLowerCase()) {
       case 'free':
         return <Code2 className="w-6 h-6" />;

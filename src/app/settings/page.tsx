@@ -19,6 +19,10 @@ export default function SettingsPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('account');
+  const [savingAccount, setSavingAccount] = useState(false);
+  const [savingAI, setSavingAI] = useState(false);
+  const [savingAppearance, setSavingAppearance] = useState(false);
+  const [accountSuccess, setAccountSuccess] = useState(false);
 
   useEffect(() => {
     verifyUser();
@@ -72,11 +76,6 @@ export default function SettingsPage() {
       </div>
     );
   }
-
-  const [savingAccount, setSavingAccount] = useState(false);
-  const [savingAI, setSavingAI] = useState(false);
-  const [savingAppearance, setSavingAppearance] = useState(false);
-  const [accountSuccess, setAccountSuccess] = useState(false);
 
   const tabs = [
     { id: 'account', label: 'Account', icon: User },

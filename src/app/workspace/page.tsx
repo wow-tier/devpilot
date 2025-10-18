@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { 
   Code2, GitBranch, Save, FileText, CheckCircle, Settings as SettingsIcon, 
   Loader2, Files, Search, GitPullRequest, Terminal as TerminalIcon,
-  MessageSquare, PanelLeftClose
+  MessageSquare, PanelLeftClose, FolderGit2
 } from 'lucide-react';
 import { GlassPanel, AccentButton } from '../components/ui';
 import Sidebar from '../components/Sidebar';

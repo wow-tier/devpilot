@@ -35,7 +35,7 @@ async function checkAdmin(request: NextRequest) {
 }
 
 // GET - List all plans
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const plans = await prisma.plan.findMany({
       include: {

@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     const providers = systemKeys
       .filter(key => {
-        const metadata = key.metadata as any;
+        const metadata = key.metadata as Record<string, unknown>;
         return key.resource && metadata?.isActive !== false;
       })
       .map(key => {

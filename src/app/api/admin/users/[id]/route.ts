@@ -50,7 +50,7 @@ export async function PUT(
     const { id } = params;
     const { email, name, password } = await request.json();
 
-    const updateData: any = {};
+    const updateData: Record<string, string> = {};
     if (email) updateData.email = email;
     if (name) updateData.name = name;
     if (password) {

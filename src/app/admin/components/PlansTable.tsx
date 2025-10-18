@@ -1,4 +1,4 @@
-import { Trash2, DollarSign, Users, CheckCircle, Database } from 'lucide-react';
+import { Trash2, Users, CheckCircle } from 'lucide-react';
 import { GlassPanel } from '../../components/ui';
 
 interface Plan {

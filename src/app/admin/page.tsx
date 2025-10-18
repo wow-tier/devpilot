@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Users, CreditCard, Key, TrendingUp, Activity, 
-  UserPlus, Plus, Loader2, Settings, LogOut, Code2,
+  UserPlus, Plus, Loader2, Settings, Code2,
   DollarSign, Database, ArrowLeft
 } from 'lucide-react';
 import { GlassPanel, AccentButton, SectionHeader } from '../components/ui';

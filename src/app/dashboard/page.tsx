@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Code2, Plus, Settings, LogOut, FolderGit2, 
   GitBranch, ExternalLink, Trash2, Loader2, Github,
-  Search, Clock, Star
+  Search, Clock
 } from 'lucide-react';
 import { GlassPanel, AccentButton, SectionHeader } from '../components/ui';
 

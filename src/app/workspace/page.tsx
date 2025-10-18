@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { 
   Code2, GitBranch, Save, FileText, CheckCircle, Settings as SettingsIcon, 
   Loader2, Files, Search, GitPullRequest, Terminal as TerminalIcon,
-  MessageSquare, PanelLeftClose, PanelLeftOpen, Split
+  MessageSquare, PanelLeftClose
 } from 'lucide-react';
-import { AppShell, SplitPane, GlassPanel, AccentButton } from '../components/ui';
+import { GlassPanel, AccentButton } from '../components/ui';
 import Sidebar from '../components/Sidebar';
 import AIChat from '../components/AIChat';
 import WelcomeScreen from '../components/WelcomeScreen';
@@ -85,7 +85,8 @@ export default function IDEWorkspace() {
   const activeContent = activeTab ? fileContents[activeTab.path] || '' : '';
   const [, setFiles] = useState<{ name: string; isDirectory: boolean }[]>([]);
 
-  const loadFiles = async (directory = '.', customRepoPath?: string) => {
+  // Wrap loadFiles in useCallback
+  const loadFiles = useCallback(async (directory = '.', customRepoPath?: string) => {
     try {
       const pathToUse = customRepoPath || repoPath;
       
@@ -107,8 +108,67 @@ export default function IDEWorkspace() {
     } catch (error) {
       console.error('Error loading files:', error);
     }
-  };
+  }, [repoPath]);
 
+  // Wrap loadGitStatus in useCallback
+  const loadGitStatus = useCallback(async (path: string) => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (path) queryParams.append('repoPath', path);
+      
+      const response = await fetch(`/api/git?${queryParams.toString()}`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setGitBranch(data.currentBranch);
+      }
+    } catch (error) {
+      console.error('Error loading Git status:', error);
+    }
+  }, []);
+
+  // Wrap cloneRepository in useCallback with proper dependencies
+  const cloneRepository = useCallback(async (repositoryId: string) => {
+    setIsCloning(true);
+    setCloneError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setCloneError('Please login to clone repositories');
+        setIsCloning(false);
+        return;
+      }
+
+      const response = await fetch('/api/repositories/clone', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ repositoryId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setRepoPath(data.path);
+        setShowWelcome(false);
+        loadFiles('.', data.path);
+        loadGitStatus(data.path);
+      } else {
+        setCloneError(data.error || 'Failed to clone repository');
+      }
+    } catch (error) {
+      console.error('Error cloning repository:', error);
+      setCloneError('Failed to clone repository. Please try again.');
+    } finally {
+      setIsCloning(false);
+    }
+  }, [loadFiles, loadGitStatus]);
+
+  // Initial repository fetch
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const repoId = params.get('repo');
@@ -148,49 +208,31 @@ export default function IDEWorkspace() {
     } else {
       setShowWelcome(true);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [cloneRepository]);
 
-  const cloneRepository = async (repositoryId: string) => {
-    setIsCloning(true);
-    setCloneError('');
+  // Wrap handleSaveFile in useCallback
+  const handleSaveFile = useCallback(async () => {
+    if (!activeTab) return;
 
     try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        setCloneError('Please login to clone repositories');
-        setIsCloning(false);
-        return;
-      }
+      const queryParams = new URLSearchParams();
+      if (repoPath) queryParams.append('repoPath', repoPath);
 
-      const response = await fetch('/api/repositories/clone', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ repositoryId }),
+      await fetch(`/api/files/${encodeURIComponent(activeTab.path)}?${queryParams.toString()}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: fileContents[activeTab.path] }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setRepoPath(data.path);
-        setShowWelcome(false);
-        loadFiles('.', data.path);
-        loadGitStatus(data.path);
-      } else {
-        setCloneError(data.error || 'Failed to clone repository');
-      }
+      setTabs(prevTabs => prevTabs.map(tab =>
+        tab.id === activeTabId ? { ...tab, isDirty: false } : tab
+      ));
     } catch (error) {
-      console.error('Error cloning repository:', error);
-      setCloneError('Failed to clone repository. Please try again.');
-    } finally {
-      setIsCloning(false);
+      console.error('Error saving file:', error);
     }
-  };
+  }, [activeTab, activeTabId, fileContents, repoPath]);
 
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -215,23 +257,7 @@ export default function IDEWorkspace() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTab, showTerminal, showSidebar]);
-
-  const loadGitStatus = async (path: string) => {
-    try {
-      const queryParams = new URLSearchParams();
-      if (path) queryParams.append('repoPath', path);
-      
-      const response = await fetch(`/api/git?${queryParams.toString()}`);
-      const data = await response.json();
-      
-      if (response.ok) {
-        setGitBranch(data.currentBranch);
-      }
-    } catch (error) {
-      console.error('Error loading Git status:', error);
-    }
-  };
+  }, [activeTab, showTerminal, showSidebar, handleSaveFile]);
 
   const handleFileSelect = async (filePath: string) => {
     try {
@@ -285,27 +311,6 @@ export default function IDEWorkspace() {
         }, 1000);
         return () => clearTimeout(timeoutId);
       }
-    }
-  };
-
-  const handleSaveFile = async () => {
-    if (!activeTab) return;
-
-    try {
-      const queryParams = new URLSearchParams();
-      if (repoPath) queryParams.append('repoPath', repoPath);
-
-      await fetch(`/api/files/${encodeURIComponent(activeTab.path)}?${queryParams.toString()}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: fileContents[activeTab.path] }),
-      });
-
-      setTabs(prevTabs => prevTabs.map(tab =>
-        tab.id === activeTabId ? { ...tab, isDirty: false } : tab
-      ));
-    } catch (error) {
-      console.error('Error saving file:', error);
     }
   };
 

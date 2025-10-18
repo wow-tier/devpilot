@@ -23,12 +23,14 @@ export class FileSystemManager {
     this.basePath = basePath;
   }
 
-  private resolvePath(relativePath: string): string {
-    return path.join(this.basePath, relativePath);
+  private resolvePath(relativePath: string, repoPath?: string): string {
+    // If repoPath is provided, use it as the base, otherwise use the default basePath
+    const base = repoPath || this.basePath;
+    return path.join(base, relativePath);
   }
 
-  async listFiles(directory: string = '.'): Promise<FileInfo[]> {
-    const fullPath = this.resolvePath(directory);
+  async listFiles(directory: string = '.', repoPath?: string): Promise<FileInfo[]> {
+    const fullPath = this.resolvePath(directory, repoPath);
     
     try {
       const entries = await fs.readdir(fullPath, { withFileTypes: true });
@@ -38,7 +40,7 @@ export class FileSystemManager {
           .filter(entry => !entry.name.startsWith('.') && entry.name !== 'node_modules')
           .map(async (entry) => {
             const entryPath = path.join(directory, entry.name);
-            const fullEntryPath = this.resolvePath(entryPath);
+            const fullEntryPath = this.resolvePath(entryPath, repoPath);
             const stats = await fs.stat(fullEntryPath);
             
             return {
@@ -57,52 +59,82 @@ export class FileSystemManager {
       });
     } catch (error) {
       console.error('Error listing files:', error);
+      throw error;
+    }
+  }
+
+  async readFile(filePath: string, repoPath?: string): Promise<FileContent> {
+    const fullPath = this.resolvePath(filePath, repoPath);
+    
+    try {
+      const content = await fs.readFile(fullPath, 'utf-8');
+      
+      return {
+        path: filePath,
+        content,
+        language: this.detectLanguage(filePath),
+      };
+    } catch (error) {
+      console.error('Error reading file:', fullPath, error);
+      throw new Error(`Failed to read file: ${filePath}`);
+    }
+  }
+
+  async writeFile(filePath: string, content: string, repoPath?: string): Promise<void> {
+    const fullPath = this.resolvePath(filePath, repoPath);
+    const dir = path.dirname(fullPath);
+    
+    try {
+      // Ensure directory exists
+      await fs.mkdir(dir, { recursive: true });
+      await fs.writeFile(fullPath, content, 'utf-8');
+    } catch (error) {
+      console.error('Error writing file:', fullPath, error);
+      throw new Error(`Failed to write file: ${filePath}`);
+    }
+  }
+
+  async deleteFile(filePath: string, repoPath?: string): Promise<void> {
+    const fullPath = this.resolvePath(filePath, repoPath);
+    
+    try {
+      await fs.unlink(fullPath);
+    } catch (error) {
+      console.error('Error deleting file:', fullPath, error);
+      throw new Error(`Failed to delete file: ${filePath}`);
+    }
+  }
+
+  async createDirectory(dirPath: string, repoPath?: string): Promise<void> {
+    const fullPath = this.resolvePath(dirPath, repoPath);
+    
+    try {
+      await fs.mkdir(fullPath, { recursive: true });
+    } catch (error) {
+      console.error('Error creating directory:', fullPath, error);
+      throw new Error(`Failed to create directory: ${dirPath}`);
+    }
+  }
+
+  async searchFiles(pattern: string, directory: string = '.', repoPath?: string): Promise<string[]> {
+    const base = repoPath || this.basePath;
+    const searchPath = path.join(this.resolvePath(directory, repoPath), pattern);
+    
+    try {
+      const files = await glob(searchPath, {
+        ignore: ['**/node_modules/**', '**/.git/**', '**/.next/**'],
+      });
+      
+      return files.map(f => path.relative(base, f));
+    } catch (error) {
+      console.error('Error searching files:', error);
       return [];
     }
   }
 
-  async readFile(filePath: string): Promise<FileContent> {
-    const fullPath = this.resolvePath(filePath);
-    const content = await fs.readFile(fullPath, 'utf-8');
-    
-    return {
-      path: filePath,
-      content,
-      language: this.detectLanguage(filePath),
-    };
-  }
-
-  async writeFile(filePath: string, content: string): Promise<void> {
-    const fullPath = this.resolvePath(filePath);
-    const dir = path.dirname(fullPath);
-    
-    // Ensure directory exists
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(fullPath, content, 'utf-8');
-  }
-
-  async deleteFile(filePath: string): Promise<void> {
-    const fullPath = this.resolvePath(filePath);
-    await fs.unlink(fullPath);
-  }
-
-  async createDirectory(dirPath: string): Promise<void> {
-    const fullPath = this.resolvePath(dirPath);
-    await fs.mkdir(fullPath, { recursive: true });
-  }
-
-  async searchFiles(pattern: string, directory: string = '.'): Promise<string[]> {
-    const searchPath = path.join(this.resolvePath(directory), pattern);
-    const files = await glob(searchPath, {
-      ignore: ['**/node_modules/**', '**/.git/**', '**/.next/**'],
-    });
-    
-    return files.map(f => path.relative(this.basePath, f));
-  }
-
-  async fileExists(filePath: string): Promise<boolean> {
+  async fileExists(filePath: string, repoPath?: string): Promise<boolean> {
     try {
-      const fullPath = this.resolvePath(filePath);
+      const fullPath = this.resolvePath(filePath, repoPath);
       await fs.access(fullPath);
       return true;
     } catch {
@@ -135,8 +167,9 @@ export class FileSystemManager {
       '.yml': 'yaml',
       '.xml': 'xml',
       '.sh': 'shell',
+      '.lock': 'json', // For composer.lock, package-lock.json, etc.
     };
-
+    
     return languageMap[ext] || 'plaintext';
   }
 }

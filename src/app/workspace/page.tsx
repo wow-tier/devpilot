@@ -108,10 +108,10 @@ export default function IDEWorkspace() {
 
       if (response.ok) {
         setFiles(data.files || []);
+        setShowWelcome(false);
       } else if (response.status === 404) {
         // Repository directory not found
-        console.error('Repository not found:', data.error);
-        setCloneError(data.error || 'Repository directory not found. Please clone again.');
+        console.error('Repository directory not found:', data.error);
         setShowWelcome(true);
       }
     } catch (error) {
@@ -138,6 +138,11 @@ export default function IDEWorkspace() {
 
   // Wrap cloneRepository in useCallback with proper dependencies
   const cloneRepository = useCallback(async (repositoryId: string) => {
+    if (isCloning) {
+      console.log('Clone already in progress, skipping...');
+      return;
+    }
+
     setIsCloning(true);
     setCloneError('');
 
@@ -149,6 +154,8 @@ export default function IDEWorkspace() {
         setIsCloning(false);
         return;
       }
+
+      console.log('Starting clone for repository:', repositoryId);
 
       const response = await fetch('/api/repositories/clone', {
         method: 'POST',
@@ -162,20 +169,26 @@ export default function IDEWorkspace() {
       const data = await response.json();
 
       if (response.ok) {
+        console.log('Clone successful:', data);
         setRepoPath(data.path);
         setShowWelcome(false);
+        // Wait a bit for filesystem to sync
+        await new Promise(resolve => setTimeout(resolve, 500));
         loadFiles('.');
         loadGitStatus(data.path);
       } else {
+        console.error('Clone failed:', data);
         setCloneError(data.error || 'Failed to clone repository');
+        setShowWelcome(true);
       }
     } catch (error) {
       console.error('Error cloning repository:', error);
       setCloneError('Failed to clone repository. Please try again.');
+      setShowWelcome(true);
     } finally {
       setIsCloning(false);
     }
-  }, [loadFiles, loadGitStatus]);
+  }, [isCloning, loadFiles, loadGitStatus]);
 
   // Load available AI providers
   useEffect(() => {

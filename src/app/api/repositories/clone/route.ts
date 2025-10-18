@@ -169,12 +169,12 @@ export async function POST(req: NextRequest) {
     // Store lock
     cloneLocks.set(lockKey, clonePromise);
 
-    try {
-      const result = await clonePromise;
-      return NextResponse.json(result);
-    } catch (error) {
-      throw error;
-    }
+      try {
+        const result = await clonePromise;
+        return NextResponse.json(result);
+      } catch (err) {
+        throw err;
+      }
   } catch (error) {
     console.error('Error cloning repository:', error);
     

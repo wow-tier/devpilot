@@ -137,7 +137,6 @@ export default function AdminPage() {
 
       if (keysRes.ok) {
         const data = await keysRes.json();
-        setApiKeys(data.apiKeys);
       }
 
       if (systemKeysRes.ok) {

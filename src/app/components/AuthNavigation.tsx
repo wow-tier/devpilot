@@ -32,10 +32,7 @@ export default function AuthNavigation({ }: AuthNavigationProps) {
       }
     };
     loadSettings();
-    
-    // Reload settings when user logs in
-    const interval = setInterval(loadSettings, 10000);
-    return () => clearInterval(interval);
+    // Only load once on mount, no polling needed
   }, []);
 
   const handleLogout = () => {

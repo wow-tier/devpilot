@@ -3,12 +3,7 @@ import OpenAI from 'openai';
 import { CodeModification, AgentResponse, ChatMessage } from '../types';
 import { fileSystem } from './fileSystem';
 import { gitManager } from './git';
-
-console.log('Using OpenAI model:', process.env.OPENAI_MODEL);
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
+import { getSystemApiKey } from './system-keys';
 
 export interface AgentContext {
   files: Record<string, string>;
@@ -33,6 +28,18 @@ export class AIAgent {
     provider: string = 'openai'
   ): Promise<AgentResponse> {
     try {
+      // Fetch system API key for the selected provider
+      const apiKey = await getSystemApiKey(provider as 'openai' | 'claude' | 'grok');
+      
+      if (!apiKey) {
+        throw new Error(`No API key configured for provider: ${provider}. Please ask your administrator to add API keys in the admin panel.`);
+      }
+
+      // Initialize OpenAI client with fetched key
+      const openai = new OpenAI({
+        apiKey: apiKey,
+      });
+
       // Add user message to history
       this.context.chatHistory.push({
         id: Date.now().toString(),
@@ -50,43 +57,29 @@ export class AIAgent {
 
       let aiResponse = '';
 
-      // For now, all providers use OpenAI-compatible API
-      // In production, you would implement provider-specific logic
-      // and fetch the API key from the system keys
-      const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
-
-      if (model.startsWith('gpt-5')) {
-        // Responses API
-        const response = await openai.responses.create({
-          model,
-          input: [
-            {
-              role: 'user',
-              content: userPrompt,
-            },
-          ],
-        });
-        aiResponse = response.output_text || '';
-      } else {
-        // Chat API - works for OpenAI, Claude, and Grok with appropriate SDKs
-        const response = await openai.chat.completions.create({
-          model,
-          messages: messages.map(msg => ({
-            role: msg.role === 'user' ? 'user' : 'assistant',
-            content: msg.content,
-          })) as OpenAI.Chat.ChatCompletionMessageParam[],
-          temperature: 0.7,
-          max_tokens: 4000,
-        });
-        aiResponse = response.choices[0]?.message?.content || '';
+      // Determine model based on provider
+      let model = 'gpt-3.5-turbo';
+      if (provider === 'openai') {
+        model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+      } else if (provider === 'claude') {
+        model = 'claude-3-5-sonnet-20241022';
+      } else if (provider === 'grok') {
+        model = 'grok-beta';
       }
 
-      // Note: Provider parameter is accepted but not yet fully implemented
-      // To fully implement:
-      // 1. Import provider-specific SDKs (Anthropic for Claude, xAI for Grok)
-      // 2. Fetch the system API key for the selected provider
-      // 3. Use provider-specific API calls
-      console.log(`Using provider: ${provider}`);
+      console.log(`Using provider: ${provider}, model: ${model}`);
+
+      // Chat API - works for OpenAI, Claude, and Grok with appropriate SDKs
+      const response = await openai.chat.completions.create({
+        model,
+        messages: messages.map(msg => ({
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.content,
+        })) as OpenAI.Chat.ChatCompletionMessageParam[],
+        temperature: 0.7,
+        max_tokens: 4000,
+      });
+      aiResponse = response.choices[0]?.message?.content || '';
 
 
       // Add AI response to history
@@ -122,10 +115,34 @@ export class AIAgent {
         suggestedCommitMessage,
       };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('AI Agent error:', error);
+      
+      let errorMessage = 'I encountered an error processing your request.';
+      
+      // Type guard for OpenAI API errors
+      const isOpenAIError = (err: unknown): err is { status?: number; code?: string } => {
+        return typeof err === 'object' && err !== null && ('status' in err || 'code' in err);
+      };
+      
+      // Handle quota/rate limit errors
+      if (isOpenAIError(error) && (error.status === 429 || error.code === 'insufficient_quota')) {
+        errorMessage = '❌ API quota exceeded. The API key has run out of credits. Please contact your administrator to update the API key.';
+      }
+      // Handle authentication errors
+      else if (isOpenAIError(error) && (error.status === 401 || error.code === 'invalid_api_key')) {
+        errorMessage = '❌ Invalid API key. Please contact your administrator to update the API key in the admin panel.';
+      }
+      // Handle missing API key
+      else if (error instanceof Error && error.message.includes('No API key configured')) {
+        errorMessage = error.message;
+      }
+      // Generic error
+      else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       return {
-        message: 'I encountered an error processing your request.',
+        message: errorMessage,
         modifications: [],
         error: errorMessage,
       };

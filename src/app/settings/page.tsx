@@ -13,6 +13,8 @@ interface User {
   id: string;
   email: string;
   name?: string;
+  avatar?: string;
+  githubUsername?: string;
 }
 
 export default function SettingsPage() {

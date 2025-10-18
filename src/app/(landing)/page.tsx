@@ -7,6 +7,7 @@ import {
   ArrowRight, Play, Check
 } from 'lucide-react';
 import { GlassPanel, AccentButton } from '../components/ui';
+import AuthNavigation from '../components/AuthNavigation';
 
 export default function LandingPage() {
   const features = [
@@ -51,44 +52,7 @@ export default function LandingPage() {
       </div>
 
       {/* Navigation */}
-      <nav className="border-b border-cursor-border bg-cursor-surface/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-8">
-              <Link href="/" className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-accent-gradient rounded-cursor-md flex items-center justify-center shadow-cursor-md">
-                  <Code2 className="w-5 h-5 text-white" />
-                </div>
-                <h1 className="text-xl font-bold text-cursor-text">AI Code Agent</h1>
-              </Link>
-              <div className="hidden md:flex items-center gap-6">
-                <a href="#features" className="text-sm font-medium text-cursor-text-muted hover:text-cursor-text transition-colors">
-                  Features
-                </a>
-                <Link href="/pricing" className="text-sm font-medium text-cursor-text-muted hover:text-cursor-text transition-colors">
-                  Pricing
-                </Link>
-                <a href="#" className="text-sm font-medium text-cursor-text-muted hover:text-cursor-text transition-colors">
-                  Docs
-                </a>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Link 
-                href="/login" 
-                className="px-4 py-2 text-cursor-text-muted hover:text-cursor-text transition-colors font-medium text-sm"
-              >
-                Sign In
-              </Link>
-              <Link href="/login?signup=true">
-                <AccentButton icon={<ArrowRight className="w-4 h-4" />}>
-                  Get Started Free
-                </AccentButton>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <AuthNavigation transparent />
 
       {/* Hero Section */}
       <div className="relative">

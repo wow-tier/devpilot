@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, User, FolderGit2, Sparkles, Palette,
@@ -328,10 +329,12 @@ export default function SettingsPage() {
                     </label>
                     <div className="flex items-center gap-4">
                       {user.avatar ? (
-                        <img 
+                        <Image 
                           src={user.avatar} 
                           alt="Profile" 
-                          className="w-20 h-20 rounded-full object-cover"
+                          width={80}
+                          height={80}
+                          className="rounded-full object-cover"
                         />
                       ) : (
                         <div className="w-20 h-20 bg-accent-gradient rounded-full flex items-center justify-center text-white text-2xl font-bold">

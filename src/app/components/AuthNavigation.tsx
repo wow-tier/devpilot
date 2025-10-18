@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Code2, ArrowRight, Settings, LogOut, LayoutDashboard } from 'lucide-react';
 import { AccentButton } from './ui';
 import { useAuth } from '../hooks/useAuth';
@@ -53,10 +53,12 @@ export default function AuthNavigation({ transparent = false }: AuthNavigationPr
               <>
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-cursor-surface-hover rounded-cursor-sm border border-cursor-border">
                   {user.avatar ? (
-                    <img 
+                    <Image 
                       src={user.avatar} 
                       alt="Profile" 
-                      className="w-7 h-7 rounded-full object-cover"
+                      width={28}
+                      height={28}
+                      className="rounded-full object-cover"
                     />
                   ) : (
                     <div className="w-7 h-7 bg-accent-gradient rounded-full flex items-center justify-center text-white text-xs font-semibold">

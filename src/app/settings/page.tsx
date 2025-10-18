@@ -23,6 +23,31 @@ export default function SettingsPage() {
   const [savingAI, setSavingAI] = useState(false);
   const [savingAppearance, setSavingAppearance] = useState(false);
   const [accountSuccess, setAccountSuccess] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  
+  // Form states
+  const [displayName, setDisplayName] = useState('');
+  const [githubUsername, setGithubUsername] = useState('');
+  const [preferences, setPreferences] = useState({
+    notifications: {
+      emailUpdates: true,
+      repositoryAlerts: true,
+      aiSuggestions: true,
+      securityAlerts: true
+    },
+    appearance: {
+      theme: 'vs-dark',
+      fontSize: 14,
+      highContrast: false,
+      reduceAnimations: false
+    },
+    ai: {
+      model: 'gpt-4',
+      apiKey: '',
+      temperature: 0.7,
+      maxTokens: 2048
+    }
+  });
 
   useEffect(() => {
     verifyUser();
@@ -59,10 +84,35 @@ export default function SettingsPage() {
       }
 
       setUser(data.user);
+      setDisplayName(data.user.name || '');
+      setGithubUsername(data.user.githubUsername || '');
+      
+      // Load user preferences
+      loadPreferences();
     } catch (error) {
       console.error('Verification error:', error);
       localStorage.clear();
       router.push('/login');
+    }
+  };
+
+  const loadPreferences = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const response = await fetch('/api/user/preferences', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPreferences(data.preferences);
+      }
+    } catch (error) {
+      console.error('Error loading preferences:', error);
     }
   };
 
@@ -86,23 +136,115 @@ export default function SettingsPage() {
 
   const handleSaveAccount = async () => {
     setSavingAccount(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSavingAccount(false);
-    setAccountSuccess(true);
-    setTimeout(() => setAccountSuccess(false), 3000);
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: displayName,
+          githubUsername: githubUsername
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        setAccountSuccess(true);
+        setTimeout(() => setAccountSuccess(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+    } finally {
+      setSavingAccount(false);
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      const response = await fetch('/api/user/avatar', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      }
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const handleSaveAI = async () => {
     setSavingAI(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSavingAI(false);
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch('/api/user/preferences', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...preferences,
+          ai: preferences.ai
+        }),
+      });
+
+      if (response.ok) {
+        // Success feedback
+      }
+    } catch (error) {
+      console.error('Error saving AI settings:', error);
+    } finally {
+      setSavingAI(false);
+    }
   };
 
   const handleSaveAppearance = async () => {
     setSavingAppearance(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSavingAppearance(false);
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch('/api/user/preferences', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...preferences,
+          appearance: preferences.appearance
+        }),
+      });
+
+      if (response.ok) {
+        // Success feedback
+      }
+    } catch (error) {
+      console.error('Error saving appearance:', error);
+    } finally {
+      setSavingAppearance(false);
+    }
   };
 
   return (
@@ -183,15 +325,40 @@ export default function SettingsPage() {
                       Profile Picture
                     </label>
                     <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 bg-accent-gradient rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                        {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
-                      </div>
+                      {user.avatar ? (
+                        <img 
+                          src={user.avatar} 
+                          alt="Profile" 
+                          className="w-20 h-20 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 bg-accent-gradient rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                          {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+                        </div>
+                      )}
                       <div>
-                        <AccentButton size="sm" variant="secondary">
-                          Upload Photo
-                        </AccentButton>
+                        <input
+                          type="file"
+                          id="avatar-upload"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          onChange={handlePhotoUpload}
+                          className="hidden"
+                        />
+                        <label 
+                          htmlFor="avatar-upload"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-cursor-sm border border-cursor-border bg-cursor-surface hover:bg-cursor-surface-hover text-cursor-text transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {uploadingPhoto ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            'Upload Photo'
+                          )}
+                        </label>
                         <p className="text-xs text-cursor-text-muted mt-2">
-                          JPG, PNG or GIF. Max 2MB.
+                          JPG, PNG, GIF or WebP. Max 2MB.
                         </p>
                       </div>
                     </div>
@@ -218,7 +385,8 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="text"
-                      defaultValue={user.name}
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
                       className="input-cursor w-full"
                       placeholder="Enter your name"
                     />
@@ -230,6 +398,8 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="text"
+                      value={githubUsername}
+                      onChange={(e) => setGithubUsername(e.target.value)}
                       className="input-cursor w-full"
                       placeholder="your-github-username"
                     />
@@ -245,15 +415,22 @@ export default function SettingsPage() {
                     </h3>
                     <div className="space-y-3">
                       {[
-                        { id: 'email-updates', label: 'Email updates about new features' },
-                        { id: 'repository-alerts', label: 'Repository activity alerts' },
-                        { id: 'ai-suggestions', label: 'AI-generated code suggestions' },
-                        { id: 'security-alerts', label: 'Security and account alerts' }
+                        { id: 'emailUpdates', label: 'Email updates about new features' },
+                        { id: 'repositoryAlerts', label: 'Repository activity alerts' },
+                        { id: 'aiSuggestions', label: 'AI-generated code suggestions' },
+                        { id: 'securityAlerts', label: 'Security and account alerts' }
                       ].map((pref) => (
                         <label key={pref.id} className="flex items-center gap-3 cursor-pointer group">
                           <input
                             type="checkbox"
-                            defaultChecked
+                            checked={preferences.notifications[pref.id as keyof typeof preferences.notifications]}
+                            onChange={(e) => setPreferences({
+                              ...preferences,
+                              notifications: {
+                                ...preferences.notifications,
+                                [pref.id]: e.target.checked
+                              }
+                            })}
                             className="w-4 h-4 rounded border-cursor-border bg-cursor-surface-hover text-accent-blue focus:ring-accent-blue focus:ring-2"
                           />
                           <span className="text-sm text-cursor-text-secondary group-hover:text-cursor-text transition-colors">
@@ -325,10 +502,17 @@ export default function SettingsPage() {
                     <label className="block text-sm font-semibold text-cursor-text mb-2">
                       AI Model
                     </label>
-                    <select className="input-cursor w-full">
-                      <option>GPT-4 (Most Capable)</option>
-                      <option>GPT-3.5 Turbo (Faster)</option>
-                      <option>Claude 3</option>
+                    <select 
+                      className="input-cursor w-full"
+                      value={preferences.ai.model}
+                      onChange={(e) => setPreferences({
+                        ...preferences,
+                        ai: { ...preferences.ai, model: e.target.value }
+                      })}
+                    >
+                      <option value="gpt-4">GPT-4 (Most Capable)</option>
+                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster)</option>
+                      <option value="claude-3">Claude 3</option>
                     </select>
                     <p className="text-xs text-cursor-text-muted mt-1.5">
                       Choose the AI model for code generation
@@ -366,14 +550,18 @@ export default function SettingsPage() {
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-semibold text-cursor-text mb-2">
-                          Temperature
+                          Temperature: {preferences.ai.temperature}
                         </label>
                         <input
                           type="range"
                           min="0"
                           max="2"
                           step="0.1"
-                          defaultValue="0.7"
+                          value={preferences.ai.temperature}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            ai: { ...preferences.ai, temperature: parseFloat(e.target.value) }
+                          })}
                           className="w-full"
                         />
                         <div className="flex justify-between text-xs text-cursor-text-muted mt-1">
@@ -388,7 +576,11 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="number"
-                          defaultValue="2048"
+                          value={preferences.ai.maxTokens}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            ai: { ...preferences.ai, maxTokens: parseInt(e.target.value) }
+                          })}
                           className="input-cursor w-full"
                           min="256"
                           max="4096"
@@ -425,12 +617,19 @@ export default function SettingsPage() {
                     <label className="block text-sm font-semibold text-cursor-text mb-2">
                       Editor Theme
                     </label>
-                    <select className="input-cursor w-full">
-                      <option>VS Code Dark+ (Default)</option>
-                      <option>Monokai</option>
-                      <option>Dracula</option>
-                      <option>GitHub Dark</option>
-                      <option>Solarized Dark</option>
+                    <select 
+                      className="input-cursor w-full"
+                      value={preferences.appearance.theme}
+                      onChange={(e) => setPreferences({
+                        ...preferences,
+                        appearance: { ...preferences.appearance, theme: e.target.value }
+                      })}
+                    >
+                      <option value="vs-dark">VS Code Dark+ (Default)</option>
+                      <option value="monokai">Monokai</option>
+                      <option value="dracula">Dracula</option>
+                      <option value="github-dark">GitHub Dark</option>
+                      <option value="solarized-dark">Solarized Dark</option>
                     </select>
                     <p className="text-xs text-cursor-text-muted mt-1.5">
                       Choose your preferred code editor theme
@@ -441,11 +640,18 @@ export default function SettingsPage() {
                     <label className="block text-sm font-semibold text-cursor-text mb-2">
                       Font Size
                     </label>
-                    <select className="input-cursor w-full">
-                      <option>12px (Small)</option>
-                      <option>14px (Default)</option>
-                      <option>16px (Large)</option>
-                      <option>18px (Extra Large)</option>
+                    <select 
+                      className="input-cursor w-full"
+                      value={preferences.appearance.fontSize}
+                      onChange={(e) => setPreferences({
+                        ...preferences,
+                        appearance: { ...preferences.appearance, fontSize: parseInt(e.target.value) }
+                      })}
+                    >
+                      <option value="12">12px (Small)</option>
+                      <option value="14">14px (Default)</option>
+                      <option value="16">16px (Large)</option>
+                      <option value="18">18px (Extra Large)</option>
                     </select>
                   </div>
 
@@ -458,6 +664,11 @@ export default function SettingsPage() {
                       <label className="flex items-center gap-3 cursor-pointer group">
                         <input
                           type="checkbox"
+                          checked={preferences.appearance.highContrast}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            appearance: { ...preferences.appearance, highContrast: e.target.checked }
+                          })}
                           className="w-4 h-4 rounded border-cursor-border bg-cursor-surface-hover text-accent-blue focus:ring-accent-blue focus:ring-2"
                         />
                         <span className="text-sm text-cursor-text-secondary group-hover:text-cursor-text transition-colors">
@@ -467,6 +678,11 @@ export default function SettingsPage() {
                       <label className="flex items-center gap-3 cursor-pointer group">
                         <input
                           type="checkbox"
+                          checked={preferences.appearance.reduceAnimations}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            appearance: { ...preferences.appearance, reduceAnimations: e.target.checked }
+                          })}
                           className="w-4 h-4 rounded border-cursor-border bg-cursor-surface-hover text-accent-blue focus:ring-accent-blue focus:ring-2"
                         />
                         <span className="text-sm text-cursor-text-secondary group-hover:text-cursor-text transition-colors">

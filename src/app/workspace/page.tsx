@@ -804,6 +804,7 @@ export default function IDEWorkspace() {
                 <AIChat 
                   onPromptSubmit={handlePromptSubmit} 
                   selectedProvider={selectedProvider}
+                  repositoryId={currentRepo?.id}
                 />
               </div>
             </div>

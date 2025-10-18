@@ -13,9 +13,14 @@ interface Message {
 interface AIChatProps {
   onPromptSubmit?: (prompt: string) => Promise<void>;
   selectedProvider?: string;
+  repositoryId?: string;
 }
 
-export default function AIChat({ onPromptSubmit, selectedProvider = 'openai' }: AIChatProps) {
+export default function AIChat({ 
+  onPromptSubmit, 
+  selectedProvider = 'openai', 
+  repositoryId 
+}: AIChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -42,20 +47,43 @@ export default function AIChat({ onPromptSubmit, selectedProvider = 'openai' }: 
     setIsLoading(true);
 
     try {
-      if (onPromptSubmit) {
-        await onPromptSubmit(input);
-      }
+      // Send prompt to API
+      const response = await fetch('/api/prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: input,
+          provider: selectedProvider,
+          repositoryId
+        })
+      });
+
+      const data = await response.json();
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Processing your request...',
+        content: data.success ? data.response : 'Sorry, I encountered an error.',
         timestamp: new Date(),
       };
       
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Call parent callback if provided
+      if (onPromptSubmit) {
+        await onPromptSubmit(input);
+      }
     } catch (error) {
       console.error('Error processing prompt:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error processing your request.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }

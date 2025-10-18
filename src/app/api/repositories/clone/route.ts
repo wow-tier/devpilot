@@ -102,7 +102,24 @@ export async function POST(req: NextRequest) {
 
         console.log('Repository cloned successfully from:', repository.url);
 
-        // Update repository with local path
+        // Configure git for this repository
+        const repoGit = simpleGit(clonePath);
+        
+        // Set user config if available
+        if (user.name) {
+          await repoGit.addConfig('user.name', user.name);
+        }
+        if (user.email) {
+          await repoGit.addConfig('user.email', user.email);
+        }
+
+        // Create a feature branch for AI agent work
+        const featureBranch = `ai-agent-${Date.now()}`;
+        await repoGit.checkoutLocalBranch(featureBranch);
+
+        console.log(`Created and checked out feature branch: ${featureBranch}`);
+
+        // Update repository with local path and feature branch
         await updateRepository(repositoryId, user.id, {
           lastAccessedAt: new Date(),
         });
@@ -112,6 +129,7 @@ export async function POST(req: NextRequest) {
           message: 'Repository cloned successfully',
           path: clonePath,
           repository,
+          featureBranch,
         });
       } catch (cloneError) {
         console.error('Git clone error:', cloneError);

@@ -200,7 +200,23 @@ export default function IDEWorkspace() {
           setCurrentRepo(repo);
           setGitBranch(repo.defaultBranch || 'main');
           setShowWelcome(false);
-          loadFiles('.');
+          
+          // Load files after setting repo
+          const token2 = localStorage.getItem('token');
+          const queryParams = new URLSearchParams();
+          queryParams.append('repositoryId', repo.id);
+          queryParams.append('directory', '.');
+          
+          fetch(`/api/files?${queryParams.toString()}`, {
+            headers: { 'Authorization': `Bearer ${token2}` }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.files) {
+              setFiles(data.files);
+            }
+          })
+          .catch(err => console.error('Error loading files:', err));
         } else {
           setShowWelcome(true);
           setCloneError('Repository not found or access denied');
@@ -213,7 +229,8 @@ export default function IDEWorkspace() {
     };
 
     fetchRepository();
-  }, [loadFiles]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   // Wrap handleSaveFile in useCallback
   const handleSaveFile = useCallback(async () => {

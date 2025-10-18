@@ -73,7 +73,8 @@ export default function ImprovedFileExplorer({
 
   useEffect(() => {
     loadFiles('.');
-  }, [loadFiles]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repositoryId]); // Only reload when repositoryId changes
 
   useEffect(() => {
     const handleClick = () => setContextMenu(null);

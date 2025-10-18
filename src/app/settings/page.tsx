@@ -132,8 +132,6 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'account', label: 'Account', icon: User },
-    { id: 'repositories', label: 'Repositories', icon: FolderGit2 },
-    { id: 'ai', label: 'AI Settings', icon: Sparkles },
     { id: 'appearance', label: 'Appearance', icon: Palette },
   ];
 

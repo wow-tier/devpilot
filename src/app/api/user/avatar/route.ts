@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      avatar: avatarUrl,
+      avatarUrl: avatarUrl,
       user: {
         id: updatedUser.id,
         email: updatedUser.email,
